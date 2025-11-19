@@ -5,7 +5,7 @@ import AddressSearch from '@/components/AddressSearch';
 import ObservationList from '@/components/ObservationList';
 import { geocodeAddress } from '@/services/geocoding';
 import { fetchObservations } from '@/services/inaturalist';
-import { iNaturalistObservation, Coordinates, GroupedObservation, SortField, SortOrder } from '@/types';
+import { iNaturalistObservation, Coordinates, GroupedObservation, SortField, SortOrder, ObservationResponse } from '@/types';
 import { groupObservations } from '@/utils/grouping';
 import ObservationGroupRow from '@/components/ObservationGroupRow';
 import ObservationFilters from '@/components/ObservationFilters';
@@ -73,25 +73,56 @@ export default function Home() {
       // Step 1: Geocode the address
       const geocodeResult = await geocodeAddress(address);
       setSearchedLocation(geocodeResult.displayName);
-      setSearchCoordinates(geocodeResult.coordinates);
+      const { lat, lon } = geocodeResult.coordinates;
+      setSearchCoordinates({ lat, lon });
 
-      // Step 2: Fetch observations with specified radius
-      const results = await fetchObservations(
-        geocodeResult.coordinates,
-        searchRadius,
-        (current, total) => {
-          setProgressCurrent(current);
-          setProgressTotal(total);
+      // 2. Fetch observations sequentially
+      let currentPage = 1;
+      let hasMore = true;
+      let allObservations: iNaturalistObservation[] = [];
+
+      while (hasMore) {
+        const response = await fetch(
+          `/api/observations?lat=${lat}&lon=${lon}&radius=${searchRadius}&page=${currentPage}`
+        );
+
+        if (!response.ok) {
+          const errorData = await response.json();
+          throw new Error(errorData.error || `HTTP error! status: ${response.status}`);
         }
-      );
 
-      setObservations(results);
-    } catch (err) {
-      if (err instanceof Error) {
-        setError(err.message);
-      } else {
-        setError('An unexpected error occurred. Please try again.');
+        const data: ObservationResponse = await response.json();
+
+        if (data.error) {
+          throw new Error(data.error);
+        }
+
+        const newObservations = data.observations;
+        allObservations = [...allObservations, ...newObservations];
+
+        // Update state incrementally
+        setObservations(prev => [...prev, ...newObservations]);
+
+        // Update progress
+        setProgressCurrent(allObservations.length);
+        setProgressTotal(data.total_results);
+
+        // Check if we should fetch more
+        const totalResults = data.total_results;
+        const perPage = 200; // Should match API constant
+
+        if (allObservations.length >= totalResults || newObservations.length === 0) {
+          hasMore = false;
+        } else {
+          currentPage++;
+          // Optional: Add a small delay to be nice to the API if needed, though the server handles single requests fast.
+          // But since we are looping on client, we might want to yield to UI.
+          await new Promise(resolve => setTimeout(resolve, 100));
+        }
       }
+
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'An error occurred');
     } finally {
       setLoading(false);
     }

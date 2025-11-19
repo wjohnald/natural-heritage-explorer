@@ -35,6 +35,7 @@ export interface iNaturalistObservation {
   }>;
   quality_grade?: string;
   uri?: string;
+  stateProtection?: string | null; // Added for NYS Heritage Mapper
   identifications_count?: number;
   geojson?: {
     coordinates: [number, number];
@@ -60,3 +61,11 @@ export interface GroupedObservation {
 
 export type SortField = 'count' | 'distance' | 'date';
 export type SortOrder = 'asc' | 'desc';
+
+export interface ObservationResponse {
+  total_results: number;
+  observations: iNaturalistObservation[];
+  page: number;
+  per_page: number;
+  error?: string;
+}

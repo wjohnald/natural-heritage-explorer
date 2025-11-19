@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { getConservationStatus } from '../../../lib/conservationStatus';
 
 const INATURALIST_API_BASE = 'https://api.inaturalist.org/v1';
 const MILES_TO_KM = 1.60934;
@@ -9,6 +10,8 @@ export async function GET(request: NextRequest) {
     const lat = searchParams.get('lat');
     const lon = searchParams.get('lon');
     const radiusMiles = searchParams.get('radius');
+    const pageParam = searchParams.get('page');
+    const page = pageParam ? parseInt(pageParam) : 1;
 
     if (!lat || !lon) {
         return NextResponse.json(
@@ -22,39 +25,31 @@ export async function GET(request: NextRequest) {
     const radiusKm = radius * MILES_TO_KM;
 
     try {
-        const allObservations: any[] = [];
-        let page = 1;
-        let totalResults = 0;
+        // Fetch specific page
+        const pageData = await fetchPage(parseFloat(lat), parseFloat(lon), radiusKm, page);
+        const observations: any[] = pageData.results;
+        const totalResults = pageData.total_results;
 
-        // Fetch first page to get total count
-        const firstPageData = await fetchPage(parseFloat(lat), parseFloat(lon), radiusKm, page);
-        totalResults = firstPageData.total_results;
-        allObservations.push(...firstPageData.results);
-
-        // Calculate total pages needed
-        const totalPages = Math.ceil(totalResults / PER_PAGE);
-
-        // Fetch remaining pages in parallel
-        if (totalPages > 1) {
-            const pagePromises: Promise<any>[] = [];
-            for (let p = 2; p <= totalPages; p++) { // Limit to 10 pages max for performance
-                pagePromises.push(fetchPage(parseFloat(lat), parseFloat(lon), radiusKm, p));
-            }
-
-            const remainingPages = await Promise.all(pagePromises);
-            for (const pageData of remainingPages) {
-                allObservations.push(...pageData.results);
+        // Enrich observations with State Protection status
+        for (const obs of observations) {
+            if (obs.taxon && obs.taxon.name) {
+                const stateProtection = await getConservationStatus(obs.taxon.name);
+                if (stateProtection) {
+                    obs.stateProtection = stateProtection;
+                }
             }
         }
 
         return NextResponse.json({
             total_results: totalResults,
-            observations: allObservations,
+            observations: observations,
+            page: page,
+            per_page: PER_PAGE
         });
     } catch (error) {
         console.error('iNaturalist API error:', error);
         return NextResponse.json(
-            { error: 'Failed to fetch observations. Please try again.' },
+            { error: `Failed to fetch observations: ${error instanceof Error ? error.message : String(error)}` },
             { status: 500 }
         );
     }
