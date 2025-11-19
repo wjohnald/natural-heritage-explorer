@@ -789,3 +789,133 @@ body {
     font-size: 2rem;
   }
 }
+
+/* Group Row Styles */
+.group-row {
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+  border-radius: 1rem;
+  margin-bottom: 1rem;
+  overflow: hidden;
+  transition: all var(--transition-base);
+}
+
+.group-row:hover {
+  border-color: var(--border-hover);
+}
+
+.group-row.expanded {
+  border-color: var(--color-primary);
+  box-shadow: var(--shadow-md);
+}
+
+.group-summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 1.25rem 1.5rem;
+  cursor: pointer;
+  background: var(--bg-secondary);
+  transition: background-color var(--transition-base);
+}
+
+.group-summary:hover {
+  background: var(--bg-elevated);
+}
+
+.group-info {
+  flex: 1;
+}
+
+.group-title {
+  font-size: 1.125rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin-bottom: 0.25rem;
+}
+
+.group-subtitle {
+  font-size: 0.9rem;
+  color: var(--text-tertiary);
+  font-style: italic;
+}
+
+.group-stats {
+  display: flex;
+  gap: 2rem;
+  margin: 0 2rem;
+}
+
+.stat-item {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+}
+
+.stat-label {
+  font-size: 0.75rem;
+  color: var(--text-tertiary);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  font-weight: 500;
+}
+
+.stat-value {
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.group-toggle {
+  color: var(--text-tertiary);
+  transition: transform var(--transition-base), color var(--transition-base);
+}
+
+.group-toggle.rotated {
+  transform: rotate(180deg);
+  color: var(--color-primary);
+}
+
+.group-content {
+  padding: 1.5rem;
+  background: var(--bg-tertiary);
+  border-top: 1px solid var(--border-color);
+  animation: slideDown 0.3s ease-out;
+}
+
+@keyframes slideDown {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@media (max-width: 768px) {
+  .group-summary {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 1rem;
+  }
+
+  .group-stats {
+    width: 100%;
+    margin: 0;
+    justify-content: space-between;
+    gap: 1rem;
+  }
+
+  .group-toggle {
+    position: absolute;
+    top: 1.5rem;
+    right: 1.5rem;
+  }
+
+  .group-row {
+    position: relative;
+  }
+}

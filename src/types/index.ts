@@ -48,3 +48,12 @@ export interface iNaturalistResponse {
   per_page: number;
   results: iNaturalistObservation[];
 }
+
+export interface GroupedObservation {
+  scientificName: string;
+  commonName: string;
+  observations: iNaturalistObservation[];
+  totalCount: number;
+  closestDistance: number;
+  mostRecentDate: string;
+}

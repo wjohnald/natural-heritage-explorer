@@ -5,7 +5,9 @@ import AddressSearch from '@/components/AddressSearch';
 import ObservationList from '@/components/ObservationList';
 import { geocodeAddress } from '@/services/geocoding';
 import { fetchObservations } from '@/services/inaturalist';
-import { iNaturalistObservation, Coordinates } from '@/types';
+import { iNaturalistObservation, Coordinates, GroupedObservation } from '@/types';
+import { groupObservations } from '@/utils/grouping';
+import ObservationGroupRow from '@/components/ObservationGroupRow';
 
 export default function Home() {
   const [observations, setObservations] = useState<iNaturalistObservation[]>([]);
@@ -109,13 +111,56 @@ export default function Home() {
 
         {/* Right Column - Results */}
         <div className="results-column">
-          <ObservationList
-            observations={observations}
-            loading={loading}
-            totalCount={progressTotal}
-            currentCount={progressCurrent}
-            searchCoordinates={searchCoordinates || undefined}
-          />
+          <div className="results-container">
+            {loading ? (
+              <div className="loading-container">
+                <div className="loading-spinner">
+                  <div className="spinner"></div>
+                </div>
+                <p className="loading-text">
+                  {progressTotal && progressCurrent
+                    ? `Loading observations... ${progressCurrent} of ${progressTotal}`
+                    : 'Searching for observations...'}
+                </p>
+              </div>
+            ) : observations.length > 0 ? (
+              <div className="observations-section">
+                <div className="observations-header">
+                  <h2 className="observations-title">
+                    Found {observations.length.toLocaleString()} observation{observations.length !== 1 ? 's' : ''}
+                  </h2>
+                  <p className="observations-subtitle">
+                    Within {radius} miles of the searched location
+                  </p>
+                </div>
+
+                <div className="observations-list">
+                  {groupObservations(observations, searchCoordinates || undefined).map((group, index) => (
+                    <ObservationGroupRow
+                      key={`${group.scientificName}-${index}`}
+                      group={group}
+                      searchCoordinates={searchCoordinates || undefined}
+                    />
+                  ))}
+                </div>
+              </div>
+            ) : searchedLocation && !error ? (
+              <div className="empty-state">
+                <svg className="empty-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={1.5}
+                    d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
+                  />
+                </svg>
+                <h3 className="empty-title">No observations found</h3>
+                <p className="empty-description">
+                  Try searching for a different location or check back later.
+                </p>
+              </div>
+            ) : null}
+          </div>
         </div>
       </div>
 
