@@ -19,22 +19,21 @@ export default function ObservationGroupRow({ group, searchCoordinates }: Observ
                 onClick={() => setIsExpanded(!isExpanded)}
             >
                 <div className="group-info">
-                    {/* The original commonName and scientificName display is moved into group-stats */}
-                </div>
-
-                <div className="group-stats">
-                    <div className="group-title-row">
-                        <h3 className="group-scientific-name">{group.scientificName}</h3>
-                        <span className="group-common-name">{group.commonName}</span>
+                    <div className="group-title-section">
+                        <h3 className="group-title">{group.commonName}</h3>
+                        <span className="group-subtitle">{group.scientificName}</span>
                         {/* Check if any observation in the group has state protection (they all should if the species matches) */}
                         {group.observations.length > 0 && group.observations[0].stateProtection && (
-                            <div className="conservation-badges">
-                                <span className="badge state" title={`State Protection: ${group.observations[0].stateProtection}`}>
+                            <div className="conservation-badge">
+                                <span className="badge-state" title={`State Protection: ${group.observations[0].stateProtection}`}>
                                     State: {group.observations[0].stateProtection}
                                 </span>
                             </div>
                         )}
                     </div>
+                </div>
+
+                <div className="group-stats">
                     <div className="stat-item">
                         <span className="stat-label">Count</span>
                         <span className="stat-value">{group.totalCount}</span>

@@ -55,7 +55,7 @@ export async function GET(request: NextRequest) {
     }
 }
 
-async function fetchPage(lat: number, lon: number, radiusKm: number, page: number): Promise<any> {
+async function fetchPage(lat: number, lon: number, radiusKm: number, page: number, retryCount = 0): Promise<any> {
     const params = new URLSearchParams({
         lat: lat.toString(),
         lng: lon.toString(),
@@ -67,11 +67,55 @@ async function fetchPage(lat: number, lon: number, radiusKm: number, page: numbe
     });
 
     const url = `${INATURALIST_API_BASE}/observations?${params.toString()}`;
-    const response = await fetch(url);
+    const MAX_RETRIES = 5;
 
-    if (!response.ok) {
-        throw new Error(`iNaturalist API error: ${response.statusText}`);
+    try {
+        const response = await fetch(url);
+
+        if (!response.ok) {
+            // Try to parse error response body
+            let errorData: any = null;
+            try {
+                errorData = await response.json();
+            } catch {
+                // If JSON parsing fails, fall back to status text
+            }
+
+            // Check for throttling in multiple places
+            const isThrottled = 
+                response.status === 429 ||
+                response.statusText.includes('normal_throttling') ||
+                (errorData && errorData.error === 'normal_throttling') ||
+                (errorData && typeof errorData.error === 'string' && errorData.error.includes('normal_throttling'));
+
+            if (isThrottled && retryCount < MAX_RETRIES) {
+                // Exponential backoff: 1s, 2s, 4s, 8s, 16s + random jitter
+                const baseDelay = Math.pow(2, retryCount) * 1000;
+                const jitter = Math.random() * 500;
+                const delay = baseDelay + jitter;
+                
+                console.log(`[iNaturalist] Rate limited (attempt ${retryCount + 1}/${MAX_RETRIES}). Retrying in ${Math.round(delay)}ms...`);
+                await new Promise(resolve => setTimeout(resolve, delay));
+                return fetchPage(lat, lon, radiusKm, page, retryCount + 1);
+            }
+
+            // If not throttling or max retries reached
+            const errorMessage = errorData?.error || response.statusText;
+            throw new Error(`iNaturalist API error: ${errorMessage}`);
+        }
+
+        return await response.json();
+    } catch (error: any) {
+        // Check if error message contains throttling information
+        if (error.message && error.message.includes('normal_throttling') && retryCount < MAX_RETRIES) {
+            const baseDelay = Math.pow(2, retryCount) * 1000;
+            const jitter = Math.random() * 500;
+            const delay = baseDelay + jitter;
+            
+            console.log(`[iNaturalist] Rate limited in catch (attempt ${retryCount + 1}/${MAX_RETRIES}). Retrying in ${Math.round(delay)}ms...`);
+            await new Promise(resolve => setTimeout(resolve, delay));
+            return fetchPage(lat, lon, radiusKm, page, retryCount + 1);
+        }
+        throw error;
     }
-
-    return await response.json();
 }
