@@ -41,6 +41,15 @@ export default function ObservationFilters({
                 <span className="sort-label">Sort by:</span>
                 <div className="sort-options">
                     <button
+                        className={`sort-button ${sortBy === 'name' ? 'active' : ''}`}
+                        onClick={() => onSortChange('name', sortBy === 'name' && sortOrder === 'desc' ? 'asc' : 'desc')}
+                    >
+                        Name
+                        {sortBy === 'name' && (
+                            <span className="sort-arrow">{sortOrder === 'asc' ? '↑' : '↓'}</span>
+                        )}
+                    </button>
+                    <button
                         className={`sort-button ${sortBy === 'count' ? 'active' : ''}`}
                         onClick={() => onSortChange('count', sortBy === 'count' && sortOrder === 'desc' ? 'asc' : 'desc')}
                     >
@@ -64,6 +73,15 @@ export default function ObservationFilters({
                     >
                         Date
                         {sortBy === 'date' && (
+                            <span className="sort-arrow">{sortOrder === 'desc' ? '↓' : '↑'}</span>
+                        )}
+                    </button>
+                    <button
+                        className={`sort-button ${sortBy === 'status' ? 'active' : ''}`}
+                        onClick={() => onSortChange('status', sortBy === 'status' && sortOrder === 'desc' ? 'asc' : 'desc')}
+                    >
+                        Status
+                        {sortBy === 'status' && (
                             <span className="sort-arrow">{sortOrder === 'desc' ? '↓' : '↑'}</span>
                         )}
                     </button>

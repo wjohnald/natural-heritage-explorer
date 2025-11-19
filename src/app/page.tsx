@@ -64,16 +64,19 @@ export default function Home() {
       );
     }
 
-    // Filter by conservation status
+    // Filter by conservation status (union - show species matching ANY selected filter)
     if (selectedStatuses.size > 0 || showSGCN) {
       filtered = filtered.filter(g => {
-        const matchesStatus = selectedStatuses.size === 0 || g.observations.some(obs => 
+        // Check if species matches any selected protection status
+        const matchesStatus = selectedStatuses.size > 0 && g.observations.some(obs => 
           obs.stateProtection && selectedStatuses.has(obs.stateProtection)
         );
         
-        const matchesSGCN = !showSGCN || g.observations.some(obs => obs.conservationNeed);
+        // Check if species has SGCN designation (when SGCN filter is active)
+        const matchesSGCN = showSGCN && g.observations.some(obs => obs.conservationNeed);
         
-        return matchesStatus && matchesSGCN;
+        // Return true if matches ANY of the selected criteria (OR logic)
+        return matchesStatus || matchesSGCN;
       });
     }
 
@@ -81,6 +84,9 @@ export default function Home() {
     return filtered.sort((a, b) => {
       let comparison = 0;
       switch (sortBy) {
+        case 'name':
+          comparison = a.commonName.localeCompare(b.commonName);
+          break;
         case 'count':
           comparison = a.totalCount - b.totalCount;
           break;
@@ -91,6 +97,18 @@ export default function Home() {
           // Simple string comparison for ISO dates works
           if (a.mostRecentDate < b.mostRecentDate) comparison = -1;
           if (a.mostRecentDate > b.mostRecentDate) comparison = 1;
+          break;
+        case 'status':
+          // Conservation status priority: Endangered > Threatened > Special Concern > SGCN > None
+          const getStatusPriority = (group: typeof a) => {
+            const obs = group.observations[0];
+            if (obs.stateProtection === 'Endangered') return 4;
+            if (obs.stateProtection === 'Threatened') return 3;
+            if (obs.stateProtection === 'Special Concern') return 2;
+            if (obs.conservationNeed) return 1;
+            return 0;
+          };
+          comparison = getStatusPriority(a) - getStatusPriority(b);
           break;
       }
       return sortOrder === 'asc' ? comparison : -comparison;
@@ -233,7 +251,7 @@ export default function Home() {
         {/* Right Column - Results */}
         <div className="results-column">
           <div className="results-container">
-            {loading ? (
+            {loading && observations.length === 0 ? (
               <div className="loading-container">
                 <div className="loading-spinner">
                   <div className="spinner"></div>
@@ -248,11 +266,17 @@ export default function Home() {
               <div className="observations-section">
                 <div className="observations-header">
                   <h2 className="observations-title">
-                    Found {observations.length.toLocaleString()} observation{observations.length !== 1 ? 's' : ''}
+                    {loading && progressTotal ? (
+                      <>
+                        Showing {observations.length.toLocaleString()} of {progressTotal.toLocaleString()} observation{progressTotal !== 1 ? 's' : ''}
+                        <span className="loading-badge">
+                          Loading...
+                        </span>
+                      </>
+                    ) : (
+                      <>Found {observations.length.toLocaleString()} observation{observations.length !== 1 ? 's' : ''}</>
+                    )}
                   </h2>
-                  <p className="observations-subtitle">
-                    Within {radius} miles of the searched location
-                  </p>
                 </div>
 
                 <ObservationFilters
@@ -268,13 +292,23 @@ export default function Home() {
 
                 <div className="observations-list">
                   {filteredAndSortedGroups.length > 0 ? (
-                    filteredAndSortedGroups.map((group, index) => (
-                      <ObservationGroupRow
-                        key={`${group.scientificName}-${index}`}
-                        group={group}
-                        searchCoordinates={searchCoordinates || undefined}
-                      />
-                    ))
+                    <>
+                      {filteredAndSortedGroups.map((group, index) => (
+                        <ObservationGroupRow
+                          key={`${group.scientificName}-${index}`}
+                          group={group}
+                          searchCoordinates={searchCoordinates || undefined}
+                        />
+                      ))}
+                      {loading && (
+                        <div className="loading-more">
+                          <div className="loading-spinner">
+                            <div className="spinner"></div>
+                          </div>
+                          <p className="loading-text">Loading more species...</p>
+                        </div>
+                      )}
+                    </>
                   ) : (
                     <div className="empty-state" style={{ padding: '2rem' }}>
                       <p className="text-secondary">No species match your filter.</p>

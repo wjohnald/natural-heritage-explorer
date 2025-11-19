@@ -3,7 +3,7 @@ import './globals.css';
 
 export const metadata: Metadata = {
   title: 'iNaturalist Explorer - Discover Biodiversity Near You',
-  description: 'Search for iNaturalist observations within a 3-mile radius of any address. Explore biodiversity and wildlife sightings in your area.',
+  description: 'Search for iNaturalist observations near any address. Explore biodiversity and wildlife sightings in your area.',
   keywords: ['iNaturalist', 'biodiversity', 'wildlife', 'nature', 'observations', 'species'],
 };
 

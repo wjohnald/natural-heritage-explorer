@@ -58,9 +58,6 @@ export default function ObservationList({
                 <h2 className="observations-title">
                     Found {observations.length.toLocaleString()} observation{observations.length !== 1 ? 's' : ''}
                 </h2>
-                <p className="observations-subtitle">
-                    Within 3 miles of the searched location
-                </p>
             </div>
 
             <div className="observations-grid">

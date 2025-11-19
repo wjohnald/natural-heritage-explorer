@@ -37,7 +37,7 @@ export default function ConservationFilters({
 
             <p className="filter-description">
                 Filter species by their New York State conservation status. 
-                Select one or more protection levels to view only those species.
+                Select one or more to view species matching any of the selected criteria.
             </p>
 
             <div className="conservation-filter-options">

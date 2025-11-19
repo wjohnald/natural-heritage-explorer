@@ -60,7 +60,7 @@ export interface GroupedObservation {
   mostRecentDate: string;
 }
 
-export type SortField = 'count' | 'distance' | 'date';
+export type SortField = 'count' | 'distance' | 'date' | 'name' | 'status';
 export type SortOrder = 'asc' | 'desc';
 
 export interface ObservationResponse {
