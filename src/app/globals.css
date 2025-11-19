@@ -169,23 +169,17 @@ body {
 }
 
 /* Filter Styles */
-.filters-wrapper {
-  display: flex;
-  flex-direction: column;
-  gap: 1rem;
-  margin-bottom: 2rem;
-  animation: fadeInUp 0.4s ease-out;
-}
-
 .filters-container {
   display: flex;
   flex-direction: column;
   gap: 1.5rem;
+  margin-bottom: 2rem;
   padding: 1.5rem;
   background: var(--bg-secondary);
   border: 1px solid var(--border-color);
   border-radius: 1.25rem;
   box-shadow: var(--shadow-sm);
+  animation: fadeInUp 0.4s ease-out;
 }
 
 .filter-search {
@@ -292,23 +286,39 @@ body {
   transition: transform var(--transition-fast);
 }
 
-/* Conservation Status Filters */
-.conservation-filters {
+/* Conservation Status Filters - Sidebar */
+.conservation-filters-sidebar {
+  margin-top: 2rem;
   padding: 1.5rem;
   background: var(--bg-secondary);
   border: 1px solid var(--border-color);
   border-radius: 1.25rem;
   box-shadow: var(--shadow-sm);
-  animation: fadeInUp 0.4s ease-out 0.1s backwards;
+  animation: fadeInUp 0.4s ease-out 0.2s backwards;
+}
+
+.filter-description {
+  font-size: 0.875rem;
+  line-height: 1.6;
+  color: var(--text-secondary);
+  margin-bottom: 1.25rem;
+  padding: 0.75rem 1rem;
+  background: var(--bg-tertiary);
+  border-left: 3px solid var(--color-primary);
+  border-radius: 0.5rem;
+}
+
+.status-checkboxes-sidebar {
+  display: flex;
+  flex-direction: column;
+  gap: 0.625rem;
 }
 
 .filter-section-header {
   display: flex;
   align-items: center;
   gap: 0.75rem;
-  margin-bottom: 1rem;
-  padding-bottom: 1rem;
-  border-bottom: 1px solid var(--border-color);
+  margin-bottom: 1.25rem;
 }
 
 .filter-icon {
@@ -319,10 +329,11 @@ body {
 }
 
 .filter-section-title {
-  font-size: 1rem;
+  font-size: 1.125rem;
   font-weight: 600;
   color: var(--text-primary);
   letter-spacing: 0.01em;
+  margin: 0;
 }
 
 .conservation-filter-options {

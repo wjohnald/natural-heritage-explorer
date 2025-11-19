@@ -3,6 +3,7 @@
 import { iNaturalistObservation, Coordinates } from '@/types';
 import { getObservationPhotoUrl, getObservationName } from '@/services/inaturalist';
 import { calculateDistance } from '@/utils/distance';
+import { formatObservationDate } from '@/utils/dateFormat';
 import { useState } from 'react';
 
 interface ObservationCardProps {
@@ -15,7 +16,7 @@ export default function ObservationCard({ observation, searchCoordinates }: Obse
     const photoUrl = getObservationPhotoUrl(observation);
     const displayName = getObservationName(observation);
     const scientificName = observation.taxon?.name;
-    const observedDate = observation.observed_on_string;
+    const observedDate = formatObservationDate(observation);
     const observer = observation.user?.name || observation.user?.login || 'Unknown';
     const location = observation.place_guess || 'Location unknown';
     const qualityGrade = observation.quality_grade;

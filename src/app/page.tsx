@@ -2,13 +2,12 @@
 
 import { useState } from 'react';
 import AddressSearch from '@/components/AddressSearch';
-import ObservationList from '@/components/ObservationList';
 import { geocodeAddress } from '@/services/geocoding';
-import { fetchObservations } from '@/services/inaturalist';
-import { iNaturalistObservation, Coordinates, GroupedObservation, SortField, SortOrder, ObservationResponse } from '@/types';
+import { iNaturalistObservation, Coordinates, SortField, SortOrder, ObservationResponse } from '@/types';
 import { groupObservations } from '@/utils/grouping';
 import ObservationGroupRow from '@/components/ObservationGroupRow';
 import ObservationFilters from '@/components/ObservationFilters';
+import ConservationFilters from '@/components/ConservationFilters';
 
 export default function Home() {
   const [observations, setObservations] = useState<iNaturalistObservation[]>([]);
@@ -17,26 +16,14 @@ export default function Home() {
   const [searchedLocation, setSearchedLocation] = useState<string | null>(null);
   const [progressCurrent, setProgressCurrent] = useState(0);
   const [progressTotal, setProgressTotal] = useState(0);
-  const [radius, setRadius] = useState(3); // Default 3 miles
+  const [radius, setRadius] = useState(0.5); // Default 0.5 miles
   const [searchCoordinates, setSearchCoordinates] = useState<Coordinates | null>(null);
 
   // Filter and Sort State
   const [filterTerm, setFilterTerm] = useState('');
   const [sortBy, setSortBy] = useState<SortField>('count');
   const [sortOrder, setSortOrder] = useState<SortOrder>('desc');
-  const [showProtectedOnly, setShowProtectedOnly] = useState(false);
   const [selectedStatuses, setSelectedStatuses] = useState<Set<string>>(new Set());
-
-  // Get unique conservation statuses from observations
-  const getAvailableStatuses = (): string[] => {
-    const statusSet = new Set<string>();
-    observations.forEach(obs => {
-      if (obs.stateProtection) {
-        statusSet.add(obs.stateProtection);
-      }
-    });
-    return Array.from(statusSet).sort();
-  };
 
   // Get unique conservation statuses from observations
   const availableStatuses = ["Endangered", "Threatened", "Special Concern"];
@@ -51,14 +38,6 @@ export default function Home() {
       }
       return newSet;
     });
-  };
-
-  const handleShowProtectedOnlyChange = (value: boolean) => {
-    setShowProtectedOnly(value);
-    if (!value) {
-      // Clear selected statuses when unchecking "protected only"
-      setSelectedStatuses(new Set());
-    }
   };
 
   const getFilteredAndSortedGroups = () => {
@@ -78,19 +57,11 @@ export default function Home() {
     }
 
     // Filter by conservation status
-    if (showProtectedOnly) {
+    if (selectedStatuses.size > 0) {
       filtered = filtered.filter(g => {
-        const hasProtection = g.observations.some(obs => obs.stateProtection);
-        if (!hasProtection) return false;
-
-        // If specific statuses are selected, check if observation matches any
-        if (selectedStatuses.size > 0) {
-          return g.observations.some(obs => 
-            obs.stateProtection && selectedStatuses.has(obs.stateProtection)
-          );
-        }
-
-        return true;
+        return g.observations.some(obs => 
+          obs.stateProtection && selectedStatuses.has(obs.stateProtection)
+        );
       });
     }
 
@@ -164,7 +135,6 @@ export default function Home() {
 
         // Check if we should fetch more
         const totalResults = data.total_results;
-        const perPage = 200; // Should match API constant
 
         if (allObservations.length >= totalResults || newObservations.length === 0) {
           hasMore = false;
@@ -235,6 +205,14 @@ export default function Home() {
               </div>
             </div>
           )}
+
+          {observations.length > 0 && availableStatuses.length > 0 && (
+            <ConservationFilters
+              availableStatuses={availableStatuses}
+              selectedStatuses={selectedStatuses}
+              onStatusToggle={handleStatusToggle}
+            />
+          )}
         </div>
 
         {/* Right Column - Results */}
@@ -271,11 +249,6 @@ export default function Home() {
                     setSortBy(field);
                     setSortOrder(order);
                   }}
-                  availableStatuses={availableStatuses}
-                  selectedStatuses={selectedStatuses}
-                  onStatusToggle={handleStatusToggle}
-                  showProtectedOnly={showProtectedOnly}
-                  onShowProtectedOnlyChange={handleShowProtectedOnlyChange}
                 />
 
                 <div className="observations-list">
