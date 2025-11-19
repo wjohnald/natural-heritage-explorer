@@ -22,12 +22,32 @@ export default function ObservationGroupRow({ group, searchCoordinates }: Observ
                     <div className="group-title-section">
                         <h3 className="group-title">{group.commonName}</h3>
                         <span className="group-subtitle">{group.scientificName}</span>
-                        {/* Check if any observation in the group has state protection (they all should if the species matches) */}
-                        {group.observations.length > 0 && group.observations[0].stateProtection && (
-                            <div className="conservation-badge">
-                                <span className="badge-state" title={`State Protection: ${group.observations[0].stateProtection}`}>
-                                    State: {group.observations[0].stateProtection}
-                                </span>
+                        {/* Conservation badges */}
+                        {group.observations.length > 0 && (group.observations[0].stateProtection || group.observations[0].conservationNeed) && (
+                            <div className="conservation-badges">
+                                {group.observations[0].stateProtection && (
+                                    <span 
+                                        className={`badge-state ${
+                                            group.observations[0].stateProtection === 'Endangered' ? 'badge-endangered' :
+                                            group.observations[0].stateProtection === 'Threatened' ? 'badge-threatened' :
+                                            group.observations[0].stateProtection === 'Special Concern' ? 'badge-special-concern' :
+                                            ''
+                                        }`}
+                                        title={`NYS Protection Status: ${group.observations[0].stateProtection}`}
+                                    >
+                                        {group.observations[0].stateProtection === 'Endangered' && (
+                                            <svg className="badge-icon" fill="currentColor" viewBox="0 0 20 20">
+                                                <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+                                            </svg>
+                                        )}
+                                        {group.observations[0].stateProtection}
+                                    </span>
+                                )}
+                                {group.observations[0].conservationNeed && (
+                                    <span className="badge-sgcn" title="Species of Greatest Conservation Need">
+                                        SGCN
+                                    </span>
+                                )}
                             </div>
                         )}
                     </div>

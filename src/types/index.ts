@@ -35,7 +35,8 @@ export interface iNaturalistObservation {
   }>;
   quality_grade?: string;
   uri?: string;
-  stateProtection?: string | null; // Added for NYS Heritage Mapper
+  stateProtection?: string | null; // NYS Heritage Mapper - State Protection Status
+  conservationNeed?: string | null; // NYS Heritage Mapper - Species of Greatest Conservation Need
   identifications_count?: number;
   geojson?: {
     coordinates: [number, number];

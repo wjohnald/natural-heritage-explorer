@@ -30,12 +30,13 @@ export async function GET(request: NextRequest) {
         const observations: any[] = pageData.results;
         const totalResults = pageData.total_results;
 
-        // Enrich observations with State Protection status
+        // Enrich observations with conservation data
         for (const obs of observations) {
             if (obs.taxon && obs.taxon.name) {
-                const stateProtection = await getConservationStatus(obs.taxon.name);
-                if (stateProtection) {
-                    obs.stateProtection = stateProtection;
+                const conservationData = await getConservationStatus(obs.taxon.name);
+                if (conservationData) {
+                    obs.stateProtection = conservationData.stateProtection;
+                    obs.conservationNeed = conservationData.conservationNeed;
                 }
             }
         }

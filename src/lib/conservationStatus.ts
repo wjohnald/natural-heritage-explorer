@@ -1,10 +1,15 @@
 import fs from 'fs';
 import path from 'path';
 
-// Map of Scientific Name -> State Protection Status
-let conservationStatusMap: Map<string, string> | null = null;
+export interface ConservationData {
+    stateProtection: string | null;
+    conservationNeed: string | null;
+}
 
-export async function getConservationStatus(scientificName: string): Promise<string | null> {
+// Map of Scientific Name -> Conservation Data
+let conservationStatusMap: Map<string, ConservationData> | null = null;
+
+export async function getConservationStatus(scientificName: string): Promise<ConservationData | null> {
     if (!conservationStatusMap) {
         await loadConservationStatuses();
     }
@@ -46,29 +51,37 @@ async function loadConservationStatuses() {
             }
             fields.push(currentField.trim());
 
-            // CSV Columns based on inspection:
+            // CSV Columns:
             // 0: Scientific name
-            // 1: Common name
-            // 2: Federal protection
-            // 3: State protection
-            // ...
+            // 1: Status url
+            // 2: Primary common name
+            // 3: Class
+            // 4: Order
+            // 5: Family
+            // 6: Global conservation status rank
+            // 7: State conservation status rank
+            // 8: Federal protection
+            // 9: State protection
+            // 10: Species of greatest conservation need
+            // 11: Track status code
+            // 12: Animal / Plant
 
-            if (fields.length >= 4) {
+            if (fields.length >= 11) {
                 const name = fields[0]; // Scientific name
-                const stateProtection = fields[9]; // State protection
+                const stateProtectionRaw = fields[9]; // State protection
+                const conservationNeed = fields[10]; // Species of greatest conservation need
 
-                if (name && stateProtection) {
-                    // Clean up quotes if they persist (though the parser logic above should handle the split, the content might still be quoted if the parser logic isn't perfect for stripping)
-                    // Actually, my parser logic accumulates characters inside quotes but doesn't strip the surrounding quotes if I just toggle `inQuotes`.
-                    // Wait, my parser logic:
-                    // if char is ", toggle.
-                    // else add char.
-                    // So "foo" becomes foo (if I don't add the quote to currentField).
-                    // Ah, I AM adding the quote to currentField?
-                    // No, `if (char === '"')` block does NOT add to `currentField`.
-                    // So it strips quotes! Good.
+                // Only include regulatory statuses for state protection
+                const regulatoryStatuses = ['Endangered', 'Threatened', 'Special Concern'];
+                const stateProtection = stateProtectionRaw && regulatoryStatuses.includes(stateProtectionRaw) 
+                    ? stateProtectionRaw 
+                    : null;
 
-                    conservationStatusMap.set(name, stateProtection);
+                if (name) {
+                    conservationStatusMap.set(name, {
+                        stateProtection: stateProtection,
+                        conservationNeed: conservationNeed || null,
+                    });
                 }
             }
         }

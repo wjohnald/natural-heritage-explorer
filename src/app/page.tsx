@@ -24,9 +24,13 @@ export default function Home() {
   const [sortBy, setSortBy] = useState<SortField>('count');
   const [sortOrder, setSortOrder] = useState<SortOrder>('desc');
   const [selectedStatuses, setSelectedStatuses] = useState<Set<string>>(new Set());
+  const [showSGCN, setShowSGCN] = useState(false);
 
   // Get unique conservation statuses from observations
   const availableStatuses = ["Endangered", "Threatened", "Special Concern"];
+  
+  // Check if any observations have SGCN status
+  const hasSGCN = observations.some(obs => obs.conservationNeed);
 
   const handleStatusToggle = (status: string) => {
     setSelectedStatuses(prev => {
@@ -38,6 +42,10 @@ export default function Home() {
       }
       return newSet;
     });
+  };
+
+  const handleSGCNToggle = () => {
+    setShowSGCN(prev => !prev);
   };
 
   const getFilteredAndSortedGroups = () => {
@@ -57,11 +65,15 @@ export default function Home() {
     }
 
     // Filter by conservation status
-    if (selectedStatuses.size > 0) {
+    if (selectedStatuses.size > 0 || showSGCN) {
       filtered = filtered.filter(g => {
-        return g.observations.some(obs => 
+        const matchesStatus = selectedStatuses.size === 0 || g.observations.some(obs => 
           obs.stateProtection && selectedStatuses.has(obs.stateProtection)
         );
+        
+        const matchesSGCN = !showSGCN || g.observations.some(obs => obs.conservationNeed);
+        
+        return matchesStatus && matchesSGCN;
       });
     }
 
@@ -206,11 +218,14 @@ export default function Home() {
             </div>
           )}
 
-          {observations.length > 0 && availableStatuses.length > 0 && (
+          {observations.length > 0 && (availableStatuses.length > 0 || hasSGCN) && (
             <ConservationFilters
               availableStatuses={availableStatuses}
               selectedStatuses={selectedStatuses}
               onStatusToggle={handleStatusToggle}
+              hasSGCN={hasSGCN}
+              showSGCN={showSGCN}
+              onSGCNToggle={handleSGCNToggle}
             />
           )}
         </div>

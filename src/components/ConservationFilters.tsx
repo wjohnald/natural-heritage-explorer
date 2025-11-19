@@ -4,14 +4,20 @@ interface ConservationFiltersProps {
     availableStatuses: string[];
     selectedStatuses: Set<string>;
     onStatusToggle: (status: string) => void;
+    hasSGCN: boolean;
+    showSGCN: boolean;
+    onSGCNToggle: () => void;
 }
 
 export default function ConservationFilters({
     availableStatuses,
     selectedStatuses,
     onStatusToggle,
+    hasSGCN,
+    showSGCN,
+    onSGCNToggle,
 }: ConservationFiltersProps) {
-    if (availableStatuses.length === 0) {
+    if (availableStatuses.length === 0 && !hasSGCN) {
         return null;
     }
 
@@ -48,6 +54,22 @@ export default function ConservationFilters({
                             <span className="checkbox-label-text">{status}</span>
                         </label>
                     ))}
+                    
+                    {hasSGCN && (
+                        <label className="filter-checkbox-label filter-checkbox-sgcn">
+                            <input
+                                type="checkbox"
+                                checked={showSGCN}
+                                onChange={onSGCNToggle}
+                                className="filter-checkbox"
+                            />
+                            <span className="checkbox-custom"></span>
+                            <span className="checkbox-label-text">
+                                SGCN
+                                <span className="checkbox-label-subtitle">Species of Greatest Conservation Need</span>
+                            </span>
+                        </label>
+                    )}
                 </div>
             </div>
         </div>
