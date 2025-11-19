@@ -5,9 +5,10 @@ import AddressSearch from '@/components/AddressSearch';
 import ObservationList from '@/components/ObservationList';
 import { geocodeAddress } from '@/services/geocoding';
 import { fetchObservations } from '@/services/inaturalist';
-import { iNaturalistObservation, Coordinates, GroupedObservation } from '@/types';
+import { iNaturalistObservation, Coordinates, GroupedObservation, SortField, SortOrder } from '@/types';
 import { groupObservations } from '@/utils/grouping';
 import ObservationGroupRow from '@/components/ObservationGroupRow';
+import ObservationFilters from '@/components/ObservationFilters';
 
 export default function Home() {
   const [observations, setObservations] = useState<iNaturalistObservation[]>([]);
@@ -18,6 +19,47 @@ export default function Home() {
   const [progressTotal, setProgressTotal] = useState(0);
   const [radius, setRadius] = useState(3); // Default 3 miles
   const [searchCoordinates, setSearchCoordinates] = useState<Coordinates | null>(null);
+
+  // Filter and Sort State
+  const [filterTerm, setFilterTerm] = useState('');
+  const [sortBy, setSortBy] = useState<SortField>('count');
+  const [sortOrder, setSortOrder] = useState<SortOrder>('desc');
+
+  const getFilteredAndSortedGroups = () => {
+    const groups = groupObservations(observations, searchCoordinates || undefined);
+
+    // Filter
+    let filtered = groups;
+    if (filterTerm.trim()) {
+      const term = filterTerm.toLowerCase();
+      filtered = groups.filter(
+        (g) =>
+          g.commonName.toLowerCase().includes(term) ||
+          g.scientificName.toLowerCase().includes(term)
+      );
+    }
+
+    // Sort
+    return filtered.sort((a, b) => {
+      let comparison = 0;
+      switch (sortBy) {
+        case 'count':
+          comparison = a.totalCount - b.totalCount;
+          break;
+        case 'distance':
+          comparison = a.closestDistance - b.closestDistance;
+          break;
+        case 'date':
+          // Simple string comparison for ISO dates works
+          if (a.mostRecentDate < b.mostRecentDate) comparison = -1;
+          if (a.mostRecentDate > b.mostRecentDate) comparison = 1;
+          break;
+      }
+      return sortOrder === 'asc' ? comparison : -comparison;
+    });
+  };
+
+  const filteredAndSortedGroups = getFilteredAndSortedGroups();
 
   const handleSearch = async (address: string, searchRadius: number) => {
     setLoading(true);
@@ -134,14 +176,31 @@ export default function Home() {
                   </p>
                 </div>
 
+                <ObservationFilters
+                  searchTerm={filterTerm}
+                  onSearchChange={setFilterTerm}
+                  sortBy={sortBy}
+                  sortOrder={sortOrder}
+                  onSortChange={(field, order) => {
+                    setSortBy(field);
+                    setSortOrder(order);
+                  }}
+                />
+
                 <div className="observations-list">
-                  {groupObservations(observations, searchCoordinates || undefined).map((group, index) => (
-                    <ObservationGroupRow
-                      key={`${group.scientificName}-${index}`}
-                      group={group}
-                      searchCoordinates={searchCoordinates || undefined}
-                    />
-                  ))}
+                  {filteredAndSortedGroups.length > 0 ? (
+                    filteredAndSortedGroups.map((group, index) => (
+                      <ObservationGroupRow
+                        key={`${group.scientificName}-${index}`}
+                        group={group}
+                        searchCoordinates={searchCoordinates || undefined}
+                      />
+                    ))
+                  ) : (
+                    <div className="empty-state" style={{ padding: '2rem' }}>
+                      <p className="text-secondary">No species match your filter.</p>
+                    </div>
+                  )}
                 </div>
               </div>
             ) : searchedLocation && !error ? (

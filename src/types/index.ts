@@ -57,3 +57,6 @@ export interface GroupedObservation {
   closestDistance: number;
   mostRecentDate: string;
 }
+
+export type SortField = 'count' | 'distance' | 'date';
+export type SortOrder = 'asc' | 'desc';

@@ -37,7 +37,7 @@ export async function GET(request: NextRequest) {
         // Fetch remaining pages in parallel
         if (totalPages > 1) {
             const pagePromises: Promise<any>[] = [];
-            for (let p = 2; p <= Math.min(totalPages, 10); p++) { // Limit to 10 pages max for performance
+            for (let p = 2; p <= totalPages; p++) { // Limit to 10 pages max for performance
                 pagePromises.push(fetchPage(parseFloat(lat), parseFloat(lon), radiusKm, p));
             }
 
