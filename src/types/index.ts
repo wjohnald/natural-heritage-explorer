@@ -35,6 +35,11 @@ export interface iNaturalistObservation {
   }>;
   quality_grade?: string;
   uri?: string;
+  identifications_count?: number;
+  geojson?: {
+    coordinates: [number, number];
+    type: string;
+  };
 }
 
 export interface iNaturalistResponse {

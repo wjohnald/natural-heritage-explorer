@@ -5,7 +5,7 @@ import AddressSearch from '@/components/AddressSearch';
 import ObservationList from '@/components/ObservationList';
 import { geocodeAddress } from '@/services/geocoding';
 import { fetchObservations } from '@/services/inaturalist';
-import { iNaturalistObservation } from '@/types';
+import { iNaturalistObservation, Coordinates } from '@/types';
 
 export default function Home() {
   const [observations, setObservations] = useState<iNaturalistObservation[]>([]);
@@ -15,6 +15,7 @@ export default function Home() {
   const [progressCurrent, setProgressCurrent] = useState(0);
   const [progressTotal, setProgressTotal] = useState(0);
   const [radius, setRadius] = useState(3); // Default 3 miles
+  const [searchCoordinates, setSearchCoordinates] = useState<Coordinates | null>(null);
 
   const handleSearch = async (address: string, searchRadius: number) => {
     setLoading(true);
@@ -28,6 +29,7 @@ export default function Home() {
       // Step 1: Geocode the address
       const geocodeResult = await geocodeAddress(address);
       setSearchedLocation(geocodeResult.displayName);
+      setSearchCoordinates(geocodeResult.coordinates);
 
       // Step 2: Fetch observations with specified radius
       const results = await fetchObservations(
@@ -112,6 +114,7 @@ export default function Home() {
             loading={loading}
             totalCount={progressTotal}
             currentCount={progressCurrent}
+            searchCoordinates={searchCoordinates || undefined}
           />
         </div>
       </div>

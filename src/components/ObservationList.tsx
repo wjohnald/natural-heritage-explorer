@@ -1,6 +1,6 @@
 'use client';
 
-import { iNaturalistObservation } from '@/types';
+import { iNaturalistObservation, Coordinates } from '@/types';
 import ObservationCard from './ObservationCard';
 
 interface ObservationListProps {
@@ -8,6 +8,7 @@ interface ObservationListProps {
     loading?: boolean;
     totalCount?: number;
     currentCount?: number;
+    searchCoordinates?: Coordinates;
 }
 
 export default function ObservationList({
@@ -15,6 +16,7 @@ export default function ObservationList({
     loading = false,
     totalCount,
     currentCount,
+    searchCoordinates,
 }: ObservationListProps) {
     if (loading) {
         return (
@@ -63,7 +65,11 @@ export default function ObservationList({
 
             <div className="observations-grid">
                 {observations.map((observation) => (
-                    <ObservationCard key={observation.id} observation={observation} />
+                    <ObservationCard
+                        key={observation.id}
+                        observation={observation}
+                        searchCoordinates={searchCoordinates}
+                    />
                 ))}
             </div>
         </div>

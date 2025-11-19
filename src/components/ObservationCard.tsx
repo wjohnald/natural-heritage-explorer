@@ -1,14 +1,16 @@
 'use client';
 
-import { iNaturalistObservation } from '@/types';
+import { iNaturalistObservation, Coordinates } from '@/types';
 import { getObservationPhotoUrl, getObservationName } from '@/services/inaturalist';
+import { calculateDistance } from '@/utils/distance';
 import { useState } from 'react';
 
 interface ObservationCardProps {
     observation: iNaturalistObservation;
+    searchCoordinates?: Coordinates;
 }
 
-export default function ObservationCard({ observation }: ObservationCardProps) {
+export default function ObservationCard({ observation, searchCoordinates }: ObservationCardProps) {
     const [imageError, setImageError] = useState(false);
     const photoUrl = getObservationPhotoUrl(observation);
     const displayName = getObservationName(observation);
@@ -17,6 +19,36 @@ export default function ObservationCard({ observation }: ObservationCardProps) {
     const observer = observation.user?.name || observation.user?.login || 'Unknown';
     const location = observation.place_guess || 'Location unknown';
     const qualityGrade = observation.quality_grade;
+    const identificationsCount = observation.identifications_count || 0;
+
+    // Get coordinates from various possible sources
+    let lat: number | undefined = observation.latitude;
+    let lon: number | undefined = observation.longitude;
+
+    if (!lat || !lon) {
+        if (observation.geojson?.coordinates) {
+            // GeoJSON is [long, lat]
+            lon = observation.geojson.coordinates[0];
+            lat = observation.geojson.coordinates[1];
+        } else if (observation.location) {
+            // Location string is "lat,lon"
+            const parts = observation.location.split(',');
+            if (parts.length === 2) {
+                lat = parseFloat(parts[0]);
+                lon = parseFloat(parts[1]);
+            }
+        }
+    }
+
+    // Calculate distance if we have both coordinates
+    const distance = searchCoordinates && lat !== undefined && lon !== undefined
+        ? calculateDistance(
+            searchCoordinates.lat,
+            searchCoordinates.lon,
+            lat,
+            lon
+        )
+        : null;
 
     return (
         <div className="observation-card group">
@@ -108,6 +140,32 @@ export default function ObservationCard({ observation }: ObservationCardProps) {
                             />
                         </svg>
                         <span className="detail-text">{observer}</span>
+                    </div>
+
+                    {distance !== null && (
+                        <div className="detail-item">
+                            <svg className="detail-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path
+                                    strokeLinecap="round"
+                                    strokeLinejoin="round"
+                                    strokeWidth={2}
+                                    d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"
+                                />
+                            </svg>
+                            <span className="detail-text">{distance} {distance === 1 ? 'mile' : 'miles'} away</span>
+                        </div>
+                    )}
+
+                    <div className="detail-item">
+                        <svg className="detail-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                strokeWidth={2}
+                                d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
+                            />
+                        </svg>
+                        <span className="detail-text">{identificationsCount} {identificationsCount === 1 ? 'ID' : 'IDs'}</span>
                     </div>
                 </div>
 
