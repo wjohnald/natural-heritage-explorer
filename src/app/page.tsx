@@ -24,19 +24,74 @@ export default function Home() {
   const [filterTerm, setFilterTerm] = useState('');
   const [sortBy, setSortBy] = useState<SortField>('count');
   const [sortOrder, setSortOrder] = useState<SortOrder>('desc');
+  const [showProtectedOnly, setShowProtectedOnly] = useState(false);
+  const [selectedStatuses, setSelectedStatuses] = useState<Set<string>>(new Set());
+
+  // Get unique conservation statuses from observations
+  const getAvailableStatuses = (): string[] => {
+    const statusSet = new Set<string>();
+    observations.forEach(obs => {
+      if (obs.stateProtection) {
+        statusSet.add(obs.stateProtection);
+      }
+    });
+    return Array.from(statusSet).sort();
+  };
+
+  // Get unique conservation statuses from observations
+  const availableStatuses = ["Endangered", "Threatened", "Special Concern"];
+
+  const handleStatusToggle = (status: string) => {
+    setSelectedStatuses(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(status)) {
+        newSet.delete(status);
+      } else {
+        newSet.add(status);
+      }
+      return newSet;
+    });
+  };
+
+  const handleShowProtectedOnlyChange = (value: boolean) => {
+    setShowProtectedOnly(value);
+    if (!value) {
+      // Clear selected statuses when unchecking "protected only"
+      setSelectedStatuses(new Set());
+    }
+  };
 
   const getFilteredAndSortedGroups = () => {
     const groups = groupObservations(observations, searchCoordinates || undefined);
 
     // Filter
     let filtered = groups;
+
+    // Filter by search term
     if (filterTerm.trim()) {
       const term = filterTerm.toLowerCase();
-      filtered = groups.filter(
+      filtered = filtered.filter(
         (g) =>
           g.commonName.toLowerCase().includes(term) ||
           g.scientificName.toLowerCase().includes(term)
       );
+    }
+
+    // Filter by conservation status
+    if (showProtectedOnly) {
+      filtered = filtered.filter(g => {
+        const hasProtection = g.observations.some(obs => obs.stateProtection);
+        if (!hasProtection) return false;
+
+        // If specific statuses are selected, check if observation matches any
+        if (selectedStatuses.size > 0) {
+          return g.observations.some(obs => 
+            obs.stateProtection && selectedStatuses.has(obs.stateProtection)
+          );
+        }
+
+        return true;
+      });
     }
 
     // Sort
@@ -216,6 +271,11 @@ export default function Home() {
                     setSortBy(field);
                     setSortOrder(order);
                   }}
+                  availableStatuses={availableStatuses}
+                  selectedStatuses={selectedStatuses}
+                  onStatusToggle={handleStatusToggle}
+                  showProtectedOnly={showProtectedOnly}
+                  onShowProtectedOnlyChange={handleShowProtectedOnlyChange}
                 />
 
                 <div className="observations-list">
