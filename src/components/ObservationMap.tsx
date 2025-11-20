@@ -1,8 +1,9 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { MapContainer, TileLayer, WMSTileLayer, CircleMarker, Popup, Circle, useMapEvents, LayersControl } from 'react-leaflet';
+import { MapContainer, TileLayer, WMSTileLayer, CircleMarker, Popup, Circle, useMapEvents, LayersControl, useMap } from 'react-leaflet';
 import { iNaturalistObservation, GBIFObservation, Coordinates } from '@/types';
+import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 
 interface ObservationMapProps {
@@ -10,27 +11,135 @@ interface ObservationMapProps {
   searchCoordinates?: Coordinates;
   radius?: number; // in miles
   hoveredSpecies?: string | null;
-  onMapClick?: (coordinates: Coordinates) => void;
 }
 
-// Component to handle map clicks
-function MapClickHandler({ onMapClick }: { onMapClick?: (coordinates: Coordinates) => void }) {
-  useMapEvents({
-    click: (e) => {
-      if (onMapClick) {
-        onMapClick({
-          lat: e.latlng.lat,
-          lon: e.latlng.lng,
-        });
+// Component to handle NWI layer clicks and show wetland info
+function WetlandInfoHandler() {
+  const map = useMap();
+  const [wetlandPopup, setWetlandPopup] = useState<L.Popup | null>(null);
+
+  useEffect(() => {
+    const handleClick = async (e: L.LeafletMouseEvent) => {
+      const point = map.latLngToContainerPoint(e.latlng);
+      const size = map.getSize();
+      const bounds = map.getBounds();
+      const bbox = `${bounds.getSouthWest().lng},${bounds.getSouthWest().lat},${bounds.getNorthEast().lng},${bounds.getNorthEast().lat}`;
+      
+      const url = new URL('https://fwspublicservices.wim.usgs.gov/wetlandsmapservice/services/Wetlands/MapServer/WMSServer');
+      url.searchParams.set('SERVICE', 'WMS');
+      url.searchParams.set('VERSION', '1.1.1');
+      url.searchParams.set('REQUEST', 'GetFeatureInfo');
+      url.searchParams.set('LAYERS', '1');
+      url.searchParams.set('QUERY_LAYERS', '1');
+      url.searchParams.set('BBOX', bbox);
+      url.searchParams.set('WIDTH', size.x.toString());
+      url.searchParams.set('HEIGHT', size.y.toString());
+      url.searchParams.set('X', Math.floor(point.x).toString());
+      url.searchParams.set('Y', Math.floor(point.y).toString());
+      url.searchParams.set('INFO_FORMAT', 'text/xml');
+      url.searchParams.set('SRS', 'EPSG:4326');
+      url.searchParams.set('FEATURE_COUNT', '1');
+
+      try {
+        const response = await fetch(url.toString());
+        const text = await response.text();
+        
+        // Parse XML response
+        const parser = new DOMParser();
+        const xmlDoc = parser.parseFromString(text, 'text/xml');
+        
+        // Check if there's a feature in the response
+        const fields = xmlDoc.getElementsByTagName('FIELDS');
+        
+        if (fields.length > 0) {
+          const fieldData = fields[0];
+          
+          // Parse wetland attributes from XML
+          const wetlandType = fieldData.getAttribute('WETLAND_TYPE') || fieldData.getAttribute('wetland_type') || 'Unknown';
+          const attribute = fieldData.getAttribute('ATTRIBUTE') || fieldData.getAttribute('attribute') || '';
+          const acres = fieldData.getAttribute('ACRES') || fieldData.getAttribute('acres');
+          const weblink = fieldData.getAttribute('WEBLINK') || fieldData.getAttribute('weblink') || '';
+          
+          let popupContent = `
+            <div style="padding: 0.5rem;">
+              <h3 style="margin: 0 0 0.5rem 0; font-size: 1rem; font-weight: 600; color: var(--text-primary);">
+                🌿 Wetland Information
+              </h3>
+              <div style="font-size: 0.875rem; color: var(--text-primary);">
+                <div style="margin-bottom: 0.5rem;">
+                  <strong>Type:</strong> ${wetlandType}
+                </div>
+          `;
+          
+          if (attribute) {
+            popupContent += `
+                <div style="margin-bottom: 0.5rem;">
+                  <strong>Attributes:</strong> ${attribute}
+                </div>
+            `;
+          }
+          
+          if (acres) {
+            popupContent += `
+                <div style="margin-bottom: 0.5rem;">
+                  <strong>Size:</strong> ${parseFloat(acres).toFixed(2)} acres
+                </div>
+            `;
+          }
+          
+          if (weblink) {
+            popupContent += `
+                <div style="margin-top: 0.75rem;">
+                  <a href="${weblink}" target="_blank" rel="noopener noreferrer" 
+                     style="color: var(--color-primary); text-decoration: none; font-weight: 500;">
+                    View Details on Wetlands Mapper →
+                  </a>
+                </div>
+            `;
+          }
+          
+          popupContent += `
+              </div>
+            </div>
+          `;
+          
+          // Remove existing popup if any
+          if (wetlandPopup) {
+            map.removeLayer(wetlandPopup);
+          }
+          
+          // Create and show new popup
+          const popup = L.popup()
+            .setLatLng(e.latlng)
+            .setContent(popupContent)
+            .openOn(map);
+          
+          setWetlandPopup(popup);
+        } else {
+          // No wetland feature found at this location
+          console.log('No wetland feature found at clicked location');
+        }
+      } catch (error) {
+        console.error('Error fetching wetland info:', error);
       }
-    },
-  });
+    };
+
+    map.on('click', handleClick);
+
+    return () => {
+      map.off('click', handleClick);
+      if (wetlandPopup) {
+        map.removeLayer(wetlandPopup);
+      }
+    };
+  }, [map, wetlandPopup]);
+
   return null;
 }
 
 const MILES_TO_METERS = 1609.34;
 
-export default function ObservationMap({ observations, searchCoordinates, radius = 0.5, hoveredSpecies, onMapClick }: ObservationMapProps) {
+export default function ObservationMap({ observations, searchCoordinates, radius = 0.5, hoveredSpecies }: ObservationMapProps) {
   const [isMounted, setIsMounted] = useState(false);
 
   // Prevent hydration errors by only rendering map on client side
@@ -91,31 +200,29 @@ export default function ObservationMap({ observations, searchCoordinates, radius
   return (
     <div style={{ marginBottom: '2rem' }}>
       <div className="map-wrapper" style={{ position: 'relative' }}>
-        {onMapClick && (
-          <div style={{
-            position: 'absolute',
-            top: '10px',
-            right: '10px',
-            zIndex: 1000,
-            background: 'var(--bg-primary)',
-            padding: '8px 12px',
-            borderRadius: '6px',
-            boxShadow: '0 2px 8px rgba(0,0,0,0.15)',
-            fontSize: '0.875rem',
-            color: 'var(--text-secondary)',
-            border: '1px solid var(--border-color)',
-            pointerEvents: 'none',
-          }}>
-            💡 Click the map to search a new location
-          </div>
-        )}
+        <div style={{
+          position: 'absolute',
+          top: '10px',
+          left: '10px',
+          zIndex: 1000,
+          background: 'var(--bg-primary)',
+          padding: '8px 12px',
+          borderRadius: '6px',
+          boxShadow: '0 2px 8px rgba(0,0,0,0.15)',
+          fontSize: '0.875rem',
+          color: 'var(--text-secondary)',
+          border: '1px solid var(--border-color)',
+          pointerEvents: 'none',
+        }}>
+          💡 Click the map to view wetland information
+        </div>
         <MapContainer
           center={center}
           zoom={13}
-          style={{ height: '400px', width: '100%', borderRadius: '0.5rem', cursor: onMapClick ? 'crosshair' : 'grab' }}
+          style={{ height: '400px', width: '100%', borderRadius: '0.5rem', cursor: 'pointer' }}
           scrollWheelZoom={true}
         >
-          <MapClickHandler onMapClick={onMapClick} />
+          <WetlandInfoHandler />
           
           <LayersControl position="topright">
             {/* Base Layers */}

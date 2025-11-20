@@ -29,6 +29,17 @@ The map now includes a **Layer Control** in the top-right corner that allows you
      - Semi-transparent (60% opacity) so you can see the base map underneath
      - Can be toggled on/off using the checkbox
 
+### Interactive Wetland Information
+
+**Click anywhere on the map** to view detailed wetland information at that location:
+
+- **Wetland Type**: Classification using the Cowardin system (e.g., "Freshwater Emergent Wetland")
+- **Attributes**: Additional characteristics like water regime and vegetation
+- **Size**: Area in acres
+- **Direct Link**: Opens the USFWS Wetlands Mapper for more details
+
+The information appears in a popup at the clicked location. This feature works best when the NWI overlay is enabled, but will attempt to fetch wetland data at any location you click.
+
 ### Wetlands Data
 
 The NWI layer displays:
@@ -64,10 +75,12 @@ By overlaying the NWI data with species observations, you can:
 
 ## Tips for Use
 
-1. **Toggle the NWI layer** to compare observations with and without wetlands context
-2. **Switch to Satellite view** with NWI overlay to see actual wetland conditions
-3. **Use with Vernal Pool filters** to correlate vernal pool species with seasonal wetlands
-4. **Check wetland proximity** when evaluating conservation priority species
+1. **Click on wetlands** to see detailed information about wetland type, size, and characteristics
+2. **Toggle the NWI layer** to compare observations with and without wetlands context
+3. **Switch to Satellite view** with NWI overlay to see actual wetland conditions
+4. **Use with Vernal Pool filters** to correlate vernal pool species with seasonal wetlands
+5. **Check wetland proximity** when evaluating conservation priority species
+6. **Click near species observations** to see if they're associated with specific wetland types
 
 ## Technical Details
 

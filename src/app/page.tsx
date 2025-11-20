@@ -473,12 +473,7 @@ function HomeContent() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []); // Only run once on mount, not when handleSearch changes
 
-  // Handle map click - update coordinates and trigger search
-  const handleMapClick = (coordinates: Coordinates) => {
-    const coordString = `${coordinates.lat.toFixed(6)}, ${coordinates.lon.toFixed(6)}`;
-    setSearchedAddress(coordString);
-    handleSearch(coordString, radius);
-  };
+  // Map click now shows wetland info instead of triggering search
 
   // Handle species row expansion - show observations on map
   const handleSpeciesExpand = (scientificName: string, observations: (iNaturalistObservation | GBIFObservation)[]) => {
@@ -830,7 +825,6 @@ function HomeContent() {
                 searchCoordinates={searchCoordinates || undefined}
                 radius={radius}
                 hoveredSpecies={hoveredSpecies}
-                onMapClick={handleMapClick}
               />
 
               {/* Species Results Header and List */}
@@ -943,7 +937,6 @@ function HomeContent() {
                 searchCoordinates={searchCoordinates || undefined}
                 radius={radius}
                 hoveredSpecies={hoveredSpecies}
-                onMapClick={handleMapClick}
               />
             </div>
           )}
