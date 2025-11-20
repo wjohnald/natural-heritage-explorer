@@ -183,10 +183,6 @@ function DECWetlandsLayer({ enabled }: { enabled: boolean }) {
             const props = feature.properties;
             const geometry = feature.geometry;
 
-            // Debug: log all properties to console
-            console.log('DEC Wetland Feature Properties:', props);
-            console.log('Available property keys:', Object.keys(props));
-
             // Get area in acres
             let areaAcres = 'N/A';
 
@@ -292,19 +288,6 @@ function DECWetlandsLayer({ enabled }: { enabled: boolean }) {
                     </a>.
                   </div>
             `;
-
-            // Add collapsible debug section
-            popupContent += `
-                  <details style="margin-top: 0.75rem; border-top: 1px solid var(--border-color); padding-top: 0.75rem;">
-                    <summary style="cursor: pointer; font-weight: 600; font-size: 0.8125rem; color: var(--text-secondary); user-select: none;">
-                      🔍 Debug Info
-                    </summary>
-                    <div style="margin-top: 0.5rem; padding: 0.5rem; background: var(--bg-tertiary); border-radius: 0.375rem; font-family: monospace; font-size: 0.75rem; max-height: 200px; overflow-y: auto;">
-                      <pre style="margin: 0; white-space: pre-wrap; word-wrap: break-word; color: var(--text-primary);">${JSON.stringify(props, null, 2)}</pre>
-                    </div>
-                  </details>
-            `;
-
             popupContent += `
                 </div>
               </div>
