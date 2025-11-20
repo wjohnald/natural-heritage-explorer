@@ -130,7 +130,7 @@ async function getParcelGeometry(address: string): Promise<any> {
     try {
         // First geocode the address to get coordinates
         const geocodeResult = await geocodeAddress(address);
-
+        
         if (!geocodeResult.coordinates || !geocodeResult.coordinates.lat || !geocodeResult.coordinates.lon) {
             throw new Error('Failed to geocode address');
         }
@@ -156,6 +156,11 @@ async function getParcelGeometry(address: string): Promise<any> {
         });
 
         const response = await fetch(`${parcelServiceUrl}?${params}`);
+
+        if (!response.ok) {
+            throw new Error(`Failed to fetch parcel data: ${response.status} ${response.statusText}`);
+        }
+
         const data = await response.json();
 
         if (data.features && data.features.length > 0) {
