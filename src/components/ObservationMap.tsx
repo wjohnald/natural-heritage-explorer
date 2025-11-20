@@ -6,6 +6,7 @@ import { iNaturalistObservation, GBIFObservation, Coordinates } from '@/types';
 import L from 'leaflet';
 import * as Esri from 'esri-leaflet';
 import 'leaflet/dist/leaflet.css';
+import 'leaflet-geometryutil';
 
 interface ObservationMapProps {
   observations: (iNaturalistObservation | GBIFObservation)[];
@@ -17,11 +18,13 @@ interface ObservationMapProps {
 type BasemapType = 'topo' | 'street' | 'satellite';
 
 // Component to handle NWI layer clicks and show wetland info
-function WetlandInfoHandler() {
+function WetlandInfoHandler({ enabled }: { enabled: boolean }) {
   const map = useMap();
   const [wetlandPopup, setWetlandPopup] = useState<L.Popup | null>(null);
 
   useEffect(() => {
+    if (!enabled) return;
+
     const handleClick = async (e: L.LeafletMouseEvent) => {
       const point = map.latLngToContainerPoint(e.latlng);
       const size = map.getSize();
@@ -135,14 +138,17 @@ function WetlandInfoHandler() {
         map.removeLayer(wetlandPopup);
       }
     };
+
+    if (!enabled) return;
   }, [map, wetlandPopup]);
 
   return null;
 }
 
 // Component to handle DEC Wetlands layer using esri-leaflet
-function DECWetlandsLayer() {
+function DECWetlandsLayer({ enabled }: { enabled: boolean }) {
   const map = useMap();
+  const [wetlandPopup, setWetlandPopup] = useState<L.Popup | null>(null);
 
   useEffect(() => {
     const layer = Esri.dynamicMapLayer({
@@ -153,10 +159,185 @@ function DECWetlandsLayer() {
 
     layer.addTo(map);
 
+    // Add click handler to identify features
+    if (!enabled) return;
+
+    const handleClick = (e: L.LeafletMouseEvent) => {
+      const identifyTask = Esri.identifyFeatures({
+        url: 'https://gisservices.dec.ny.gov/arcgis/rest/services/erm/informational_freshwater_wetlands/MapServer'
+      });
+
+      identifyTask
+        .on(map)
+        .at(e.latlng)
+        .tolerance(5)
+        .layers('all')
+        .run((error: any, featureCollection: any) => {
+          if (error) {
+            console.error('Error identifying DEC wetland feature:', error);
+            return;
+          }
+
+          if (featureCollection && featureCollection.features && featureCollection.features.length > 0) {
+            const feature = featureCollection.features[0];
+            const props = feature.properties;
+            const geometry = feature.geometry;
+
+            // Debug: log all properties to console
+            console.log('DEC Wetland Feature Properties:', props);
+            console.log('Available property keys:', Object.keys(props));
+
+            // Get area in acres
+            let areaAcres = 'N/A';
+
+            // First try to get area from SHAPE.AREA property (in square meters)
+            // Note: The value might be a string, so we need to parse it
+            if (props['SHAPE.AREA']) {
+              const areaM2 = parseFloat(props['SHAPE.AREA']);
+              if (!isNaN(areaM2)) {
+                // Convert from square meters to acres (1 acre = 4046.86 m²)
+                areaAcres = (areaM2 / 4046.86).toFixed(2);
+              }
+            }
+            // Fallback: try SHAPE_AREA (alternative field name)
+            else if (props['SHAPE_AREA']) {
+              const areaM2 = parseFloat(props['SHAPE_AREA']);
+              if (!isNaN(areaM2)) {
+                areaAcres = (areaM2 / 4046.86).toFixed(2);
+              }
+            }
+            // Fallback: try ACRES if available
+            else if (props['ACRES']) {
+              const acres = parseFloat(props['ACRES']);
+              if (!isNaN(acres)) {
+                areaAcres = acres.toFixed(2);
+              }
+            }
+            // Last resort: calculate from geometry
+            else if (geometry && geometry.coordinates) {
+              try {
+                // Create a Leaflet polygon from GeoJSON to calculate area
+                const polygon = L.geoJSON(geometry);
+                // Get area in square meters
+                let areaM2 = 0;
+                polygon.eachLayer((layer: any) => {
+                  if (layer.getLatLngs) {
+                    const latLngs = layer.getLatLngs()[0];
+                    // Calculate area using spherical geometry
+                    areaM2 = (L as any).GeometryUtil.geodesicArea(latLngs);
+                  }
+                });
+                // Convert to acres (1 acre = 4046.86 m²)
+                if (areaM2 > 0) {
+                  areaAcres = (areaM2 / 4046.86).toFixed(2);
+                }
+              } catch (err) {
+                console.error('Error calculating area:', err);
+              }
+            }
+
+
+            // Build popup content
+            let popupContent = `
+              <div style="padding: 0.5rem;">
+                <h3 style="margin: 0 0 0.5rem 0; font-size: 1rem; font-weight: 600; color: var(--text-primary);">
+                  🌿 NYS DEC Wetland Information
+                </h3>
+                <div style="font-size: 0.875rem; color: var(--text-primary);">
+            `;
+
+            // Add wetland name if available
+            if (props.NAME) {
+              popupContent += `
+                  <div style="margin-bottom: 0.5rem;">
+                    <strong>Name:</strong> ${props.NAME}
+                  </div>
+              `;
+            }
+
+            // Add wetland ID if available
+            if (props.WETID_CNTY) {
+              popupContent += `
+                  <div style="margin-bottom: 0.5rem;">
+                    <strong>Wetland ID:</strong> ${props.WETID_CNTY}
+                  </div>
+              `;
+            }
+
+            // Add calculated area
+            popupContent += `
+                  <div style="margin-bottom: 0.5rem;">
+                    <strong>Area:</strong> ${areaAcres} acres
+                  </div>
+            `;
+
+            // Add class if available
+            if (props.CLASS) {
+              popupContent += `
+                  <div style="margin-bottom: 0.5rem;">
+                    <strong>Class:</strong> ${props.CLASS}
+                  </div>
+              `;
+            }
+
+            // Add regulatory status note
+            popupContent += `
+                  <div style="margin-top: 0.75rem; padding: 0.5rem; background: var(--bg-tertiary); border-radius: 0.375rem; font-size: 0.8125rem;">
+                    <strong>Note:</strong> This is informational mapping only. For regulatory determinations, 
+                    <a href="https://dec.ny.gov/nature/waterbodies/wetlands/freshwater-wetlands-program" 
+                       target="_blank" 
+                       rel="noopener noreferrer"
+                       style="color: var(--color-primary); text-decoration: none; font-weight: 500;">
+                      contact DEC
+                    </a>.
+                  </div>
+            `;
+
+            // Add collapsible debug section
+            popupContent += `
+                  <details style="margin-top: 0.75rem; border-top: 1px solid var(--border-color); padding-top: 0.75rem;">
+                    <summary style="cursor: pointer; font-weight: 600; font-size: 0.8125rem; color: var(--text-secondary); user-select: none;">
+                      🔍 Debug Info
+                    </summary>
+                    <div style="margin-top: 0.5rem; padding: 0.5rem; background: var(--bg-tertiary); border-radius: 0.375rem; font-family: monospace; font-size: 0.75rem; max-height: 200px; overflow-y: auto;">
+                      <pre style="margin: 0; white-space: pre-wrap; word-wrap: break-word; color: var(--text-primary);">${JSON.stringify(props, null, 2)}</pre>
+                    </div>
+                  </details>
+            `;
+
+            popupContent += `
+                </div>
+              </div>
+            `;
+
+            // Remove existing popup if any
+            if (wetlandPopup) {
+              map.removeLayer(wetlandPopup);
+            }
+
+            // Create and show new popup
+            const popup = L.popup()
+              .setLatLng(e.latlng)
+              .setContent(popupContent)
+              .openOn(map);
+
+            setWetlandPopup(popup);
+          }
+        });
+    };
+
+    if (!enabled) return;
+
+    map.on('click', handleClick);
+
     return () => {
       map.removeLayer(layer);
+      map.off('click', handleClick);
+      if (wetlandPopup) {
+        map.removeLayer(wetlandPopup);
+      }
     };
-  }, [map]);
+  }, [map, wetlandPopup]);
 
   return null;
 }
@@ -251,7 +432,7 @@ export default function ObservationMap({ observations, searchCoordinates, radius
           style={{ height: '600px', width: '100%', borderRadius: '0.5rem', cursor: 'pointer' }}
           scrollWheelZoom={true}
         >
-          <WetlandInfoHandler />
+          <WetlandInfoHandler enabled={showNWI} />
 
           {/* Render selected basemap */}
           {selectedBasemap === 'topo' && (
@@ -317,7 +498,7 @@ export default function ObservationMap({ observations, searchCoordinates, radius
 
           {/* Conditionally render DEC Informational Wetlands Layer */}
           {showInfoWetlands && (
-            <DECWetlandsLayer />
+            <DECWetlandsLayer enabled={showInfoWetlands} />
           )}
 
           {/* Search center marker */}
