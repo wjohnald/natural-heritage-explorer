@@ -28,11 +28,11 @@ export default function AddressSearch({
         <div className="search-container">
             <div className="search-header">
                 <h1 className="search-title">
-                    <span className="title-gradient">iNaturalist</span> Explorer
+                    <span className="title-gradient">Biodiversity</span> Explorer
                 </h1>
                 <p className="search-description">
                     Discover biodiversity near any location. Enter an address and adjust the search radius
-                    to find iNaturalist observations in your area.
+                    to find biodiversity in your area.
                 </p>
             </div>
 
