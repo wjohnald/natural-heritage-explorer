@@ -61,3 +61,37 @@ export function getObservationName(observation: iNaturalistObservation): string 
     }
     return observation.species_guess || 'Unknown Species';
 }
+
+/**
+ * Fetch species counts within a radius of given coordinates
+ */
+export async function fetchSpeciesCounts(
+    coordinates: Coordinates,
+    radiusMiles: number
+): Promise<{
+    count: number;
+    taxon: {
+        name: string;
+        preferred_common_name?: string;
+        default_photo?: { medium_url?: string }
+    };
+    stateProtection?: string;
+    conservationNeed?: boolean;
+    vernalPoolStatus?: string;
+}[]> {
+    try {
+        const url = `/api/species-counts?lat=${coordinates.lat}&lon=${coordinates.lon}&radius=${radiusMiles}`;
+        const response = await fetch(url);
+
+        if (!response.ok) {
+            const errorData = await response.json();
+            throw new Error(errorData.error || 'Failed to fetch species counts');
+        }
+
+        const data = await response.json();
+        return data.results;
+    } catch (error) {
+        console.error('Error fetching species counts:', error);
+        return [];
+    }
+}
