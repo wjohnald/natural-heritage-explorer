@@ -293,6 +293,21 @@ export default function Home() {
               onSGCNToggle={handleSGCNToggle}
             />
           )}
+
+          {observations.length > 0 && (
+            <div style={{ marginTop: '2rem' }}>
+              <ObservationFilters
+                searchTerm={filterTerm}
+                onSearchChange={setFilterTerm}
+                sortBy={sortBy}
+                sortOrder={sortOrder}
+                onSortChange={(field, order) => {
+                  setSortBy(field);
+                  setSortOrder(order);
+                }}
+              />
+            </div>
+          )}
         </div>
 
         {/* Right Column - Results */}
@@ -325,17 +340,6 @@ export default function Home() {
                     )}
                   </h2>
                 </div>
-
-                <ObservationFilters
-                  searchTerm={filterTerm}
-                  onSearchChange={setFilterTerm}
-                  sortBy={sortBy}
-                  sortOrder={sortOrder}
-                  onSortChange={(field, order) => {
-                    setSortBy(field);
-                    setSortOrder(order);
-                  }}
-                />
 
                 <ObservationMap
                   observations={filteredObservations}
