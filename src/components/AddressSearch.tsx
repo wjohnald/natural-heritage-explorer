@@ -1,21 +1,30 @@
 'use client';
 
-import { useState, FormEvent } from 'react';
+import { useState, FormEvent, useEffect } from 'react';
 
 interface AddressSearchProps {
     onSearch: (address: string, radius: number) => void;
     loading?: boolean;
     radius: number;
     onRadiusChange: (radius: number) => void;
+    initialAddress?: string;
 }
 
 export default function AddressSearch({
     onSearch,
     loading = false,
     radius,
-    onRadiusChange
+    onRadiusChange,
+    initialAddress = ''
 }: AddressSearchProps) {
-    const [address, setAddress] = useState('');
+    const [address, setAddress] = useState(initialAddress);
+
+    // Update address when initialAddress changes
+    useEffect(() => {
+        if (initialAddress) {
+            setAddress(initialAddress);
+        }
+    }, [initialAddress]);
 
     const handleSubmit = (e: FormEvent) => {
         e.preventDefault();

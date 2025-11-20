@@ -1,7 +1,8 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import dynamic from 'next/dynamic';
+import { useRouter, useSearchParams } from 'next/navigation';
 import AddressSearch from '@/components/AddressSearch';
 import { geocodeAddress } from '@/services/geocoding';
 import {
@@ -39,6 +40,9 @@ const ObservationMap = dynamic(() => import('@/components/ObservationMap'), {
 });
 
 export default function Home() {
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  
   const [observations, setObservations] = useState<iNaturalistObservation[]>([]);
   const [gbifObservations, setGbifObservations] = useState<GBIFObservation[]>([]);
   // Species-centric data from species-counts endpoints
@@ -51,6 +55,7 @@ export default function Home() {
   const [error, setError] = useState<string | null>(null);
   const [gbifError, setGbifError] = useState<string | null>(null);
   const [searchedLocation, setSearchedLocation] = useState<string | null>(null);
+  const [searchedAddress, setSearchedAddress] = useState<string | null>(null);
   const [progressCurrent, setProgressCurrent] = useState(0);
   const [progressTotal, setProgressTotal] = useState(0);
   const [gbifProgressCurrent, setGbifProgressCurrent] = useState(0);
@@ -60,7 +65,7 @@ export default function Home() {
 
   // Filter and Sort State
   const [filterTerm, setFilterTerm] = useState('');
-  const [sortBy, setSortBy] = useState<SortField>('count');
+  const [sortBy, setSortBy] = useState<SortField>('status');
   const [sortOrder, setSortOrder] = useState<SortOrder>('desc');
   const [selectedStatuses, setSelectedStatuses] = useState<Set<string>>(new Set());
   const [selectedVernalPoolStatuses, setSelectedVernalPoolStatuses] = useState<Set<string>>(new Set());
@@ -452,6 +457,21 @@ export default function Home() {
     });
   };
 
+  // Handle deep linking - check URL parameters on mount
+  useEffect(() => {
+    const address = searchParams.get('address');
+    const radiusParam = searchParams.get('radius');
+    
+    if (address) {
+      const searchRadius = radiusParam ? parseFloat(radiusParam) : 0.5;
+      setRadius(searchRadius);
+      setSearchedAddress(address);
+      // Perform the search
+      handleSearch(address, searchRadius);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []); // Only run once on mount, not when handleSearch changes
+
   const filteredObservations = getFilteredObservations();
   const filteredAndSortedGroups = getFilteredAndSortedGroups();
   const filteredAndSortedSpeciesGroups = getFilteredAndSortedSpeciesGroups();
@@ -471,10 +491,17 @@ export default function Home() {
     setSpeciesGroups([]);
     setGbifSpeciesGroups([]);
     setSearchedLocation(null);
+    setSearchedAddress(address);
     setProgressCurrent(0);
     setProgressTotal(0);
     setGbifProgressCurrent(0);
     setGbifProgressTotal(0);
+
+    // Update URL with search parameters
+    const params = new URLSearchParams();
+    params.set('address', address);
+    params.set('radius', searchRadius.toString());
+    router.push(`?${params.toString()}`, { scroll: false });
 
     try {
       // Step 1: Geocode the address
@@ -684,6 +711,7 @@ export default function Home() {
             loading={loading}
             radius={radius}
             onRadiusChange={setRadius}
+            initialAddress={searchedAddress || ''}
           />
 
           {error && (
