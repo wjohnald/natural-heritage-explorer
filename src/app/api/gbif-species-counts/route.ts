@@ -57,8 +57,8 @@ export async function GET(request: NextRequest) {
         const speciesFacets = data.facets?.find((f: any) => f.field === 'SPECIES_KEY')?.counts || [];
 
         // Resolve species names and enrich with conservation status
-        // Limit to top 100 to avoid too many requests
-        const topSpecies = speciesFacets.slice(0, 100);
+        // Process all species (no limit)
+        const topSpecies = speciesFacets;
 
         const results = await Promise.all(topSpecies.map(async (item: any) => {
             const speciesKey = item.name;

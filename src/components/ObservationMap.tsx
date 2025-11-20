@@ -68,23 +68,6 @@ export default function ObservationMap({ observations, searchCoordinates, radius
     return null;
   }
 
-  if (validObservations.length === 0 && obscuredCount === 0) {
-    return (
-      <div className="map-wrapper" style={{ marginBottom: '2rem' }}>
-        <div style={{
-          padding: '2rem',
-          background: 'var(--bg-secondary)',
-          borderRadius: '0.75rem',
-          border: '1px solid var(--border-color)',
-          textAlign: 'center',
-          color: 'var(--text-secondary)'
-        }}>
-          <p>Map unavailable: No observations have location coordinates.</p>
-        </div>
-      </div>
-    );
-  }
-
   const center: [number, number] = [searchCoordinates.lat, searchCoordinates.lon];
 
   return (

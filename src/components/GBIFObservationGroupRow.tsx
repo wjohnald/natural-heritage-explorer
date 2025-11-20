@@ -1,8 +1,6 @@
 'use client';
 
-import { useState } from 'react';
 import { GBIFGroupedObservation, Coordinates } from '@/types';
-import GBIFObservationCard from './GBIFObservationCard';
 
 interface GBIFObservationGroupRowProps {
     group: GBIFGroupedObservation;
@@ -12,18 +10,13 @@ interface GBIFObservationGroupRowProps {
 }
 
 export default function GBIFObservationGroupRow({ group, searchCoordinates, onHover, onHoverEnd }: GBIFObservationGroupRowProps) {
-    const [isExpanded, setIsExpanded] = useState(false);
-
     return (
-        <div 
-            className={`group-row ${isExpanded ? 'expanded' : ''}`}
+        <div
+            className="group-row"
             onMouseEnter={() => onHover?.(group.scientificName)}
             onMouseLeave={() => onHoverEnd?.()}
         >
-            <div
-                className="group-summary"
-                onClick={() => setIsExpanded(!isExpanded)}
-            >
+            <div className="group-summary">
                 <div className="group-info">
                     <div className="group-title-section">
                         <h3 className="group-title">{group.commonName}</h3>
@@ -32,13 +25,12 @@ export default function GBIFObservationGroupRow({ group, searchCoordinates, onHo
                         {group.observations.length > 0 && (group.observations[0].stateProtection || group.observations[0].conservationNeed || group.observations[0].vernalPoolStatus) && (
                             <div className="conservation-badges">
                                 {group.observations[0].stateProtection && (
-                                    <span 
-                                        className={`badge-state ${
-                                            group.observations[0].stateProtection === 'Endangered' ? 'badge-endangered' :
-                                            group.observations[0].stateProtection === 'Threatened' ? 'badge-threatened' :
-                                            group.observations[0].stateProtection === 'Special Concern' ? 'badge-special-concern' :
-                                            ''
-                                        }`}
+                                    <span
+                                        className={`badge-state ${group.observations[0].stateProtection === 'Endangered' ? 'badge-endangered' :
+                                                group.observations[0].stateProtection === 'Threatened' ? 'badge-threatened' :
+                                                    group.observations[0].stateProtection === 'Special Concern' ? 'badge-special-concern' :
+                                                        ''
+                                            }`}
                                         title={`NYS Protection Status: ${group.observations[0].stateProtection}`}
                                     >
                                         {group.observations[0].stateProtection === 'Endangered' && (
@@ -55,14 +47,13 @@ export default function GBIFObservationGroupRow({ group, searchCoordinates, onHo
                                     </span>
                                 )}
                                 {group.observations[0].vernalPoolStatus && (
-                                    <span 
-                                        className={`badge-vernal ${
-                                            group.observations[0].vernalPoolStatus === 'Obligate' ? 'badge-vernal-obligate' : 'badge-vernal-facultative'
-                                        }`}
+                                    <span
+                                        className={`badge-vernal ${group.observations[0].vernalPoolStatus === 'Obligate' ? 'badge-vernal-obligate' : 'badge-vernal-facultative'
+                                            }`}
                                         title={`Vernal Pool Species - ${group.observations[0].vernalPoolStatus}`}
                                     >
                                         <svg className="badge-icon" fill="currentColor" viewBox="0 0 20 20">
-                                            <path d="M10 2a1 1 0 011 1v1.323l3.954 1.582 1.599-.8a1 1 0 01.894 1.79l-1.233.616 1.738 5.42a1 1 0 01-.285 1.05A3.989 3.989 0 0115 15a3.989 3.989 0 01-2.667-1.019 1 1 0 01-.285-1.05l1.715-5.349L11 6.477V16h2a1 1 0 110 2H7a1 1 0 110-2h2V6.477L6.237 7.582l1.715 5.349a1 1 0 01-.285 1.05A3.989 3.989 0 015 15a3.989 3.989 0 01-2.667-1.019 1 1 0 01-.285-1.05l1.738-5.42-1.233-.617a1 1 0 01.894-1.788l1.599.799L9 4.323V3a1 1 0 011-1z"/>
+                                            <path d="M10 2a1 1 0 011 1v1.323l3.954 1.582 1.599-.8a1 1 0 01.894 1.79l-1.233.616 1.738 5.42a1 1 0 01-.285 1.05A3.989 3.989 0 0115 15a3.989 3.989 0 01-2.667-1.019 1 1 0 01-.285-1.05l1.715-5.349L11 6.477V16h2a1 1 0 110 2H7a1 1 0 110-2h2V6.477L6.237 7.582l1.715 5.349a1 1 0 01-.285 1.05A3.989 3.989 0 015 15a3.989 3.989 0 01-2.667-1.019 1 1 0 01-.285-1.05l1.738-5.42-1.233-.617a1 1 0 01.894-1.788l1.599.799L9 4.323V3a1 1 0 011-1z" />
                                         </svg>
                                         VP-{group.observations[0].vernalPoolStatus === 'Obligate' ? 'OBL' : 'FAC'}
                                     </span>
@@ -90,38 +81,7 @@ export default function GBIFObservationGroupRow({ group, searchCoordinates, onHo
                         <span className="stat-value">{group.mostRecentDate || 'N/A'}</span>
                     </div>
                 </div>
-
-                <div className={`group-toggle ${isExpanded ? 'rotated' : ''}`}>
-                    <svg
-                        className="w-6 h-6"
-                        fill="none"
-                        stroke="currentColor"
-                        viewBox="0 0 24 24"
-                    >
-                        <path
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            strokeWidth={2}
-                            d="M19 9l-7 7-7-7"
-                        />
-                    </svg>
-                </div>
             </div>
-
-            {isExpanded && (
-                <div className="group-content">
-                    <div className="observations-grid">
-                        {group.observations.map((observation) => (
-                            <GBIFObservationCard
-                                key={observation.key}
-                                observation={observation}
-                                searchCoordinates={searchCoordinates}
-                            />
-                        ))}
-                    </div>
-                </div>
-            )}
         </div>
     );
 }
-

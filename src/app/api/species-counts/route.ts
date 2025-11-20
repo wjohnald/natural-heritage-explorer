@@ -23,26 +23,48 @@ export async function GET(request: NextRequest) {
     const radiusKm = radius * MILES_TO_KM;
 
     try {
-        const params = new URLSearchParams({
-            lat: lat,
-            lng: lon,
-            radius: radiusKm.toString(),
-            per_page: '500', // Get a good number of species
-        });
+        // Pagination loop to get all species
+        let allResults: any[] = [];
+        let page = 1;
+        let hasMore = true;
+        const perPage = 500;
 
-        const url = `${INATURALIST_API_BASE}/observations/species_counts?${params.toString()}`;
+        while (hasMore) {
+            const params = new URLSearchParams({
+                lat: lat,
+                lng: lon,
+                radius: radiusKm.toString(),
+                per_page: perPage.toString(),
+                page: page.toString(),
+            });
 
-        const response = await fetch(url);
+            const url = `${INATURALIST_API_BASE}/observations/species_counts?${params.toString()}`;
 
-        if (!response.ok) {
-            const errorData = await response.json().catch(() => ({}));
-            throw new Error(errorData.error || `iNaturalist API error: ${response.statusText}`);
+            const response = await fetch(url);
+
+            if (!response.ok) {
+                const errorData = await response.json().catch(() => ({}));
+                throw new Error(errorData.error || `iNaturalist API error: ${response.statusText}`);
+            }
+
+            const data = await response.json();
+
+            // Add results from this page
+            allResults = [...allResults, ...data.results];
+
+            // Check if there are more pages
+            const totalResults = data.total_results || 0;
+            if (allResults.length >= totalResults || data.results.length === 0) {
+                hasMore = false;
+            } else {
+                page++;
+                // Small delay to avoid rate limiting
+                await new Promise(resolve => setTimeout(resolve, 100));
+            }
         }
 
-        const data = await response.json();
-
-        // Enrich results with conservation and vernal pool data
-        for (const item of data.results) {
+        // Enrich all results with conservation and vernal pool data
+        for (const item of allResults) {
             if (item.taxon && item.taxon.name) {
                 // Get conservation status
                 const conservationData = await getConservationStatus(item.taxon.name);
@@ -59,7 +81,10 @@ export async function GET(request: NextRequest) {
             }
         }
 
-        return NextResponse.json(data);
+        return NextResponse.json({
+            results: allResults,
+            total_results: allResults.length
+        });
     } catch (error) {
         console.error('iNaturalist species counts API error:', error);
         return NextResponse.json(
