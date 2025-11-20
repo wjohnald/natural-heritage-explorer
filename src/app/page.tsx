@@ -22,6 +22,7 @@ import ConservationFilters from '@/components/ConservationFilters';
 import SpeciesListWrapper from '@/components/SpeciesListWrapper';
 import GBIFSpeciesListWrapper from '@/components/GBIFSpeciesListWrapper';
 import SidebarSpeciesList from '@/components/SidebarSpeciesList';
+import SidebarGBIFSpeciesList from '@/components/SidebarGBIFSpeciesList';
 
 // Dynamically import the map component to avoid SSR issues with Leaflet
 const ObservationMap = dynamic(() => import('@/components/ObservationMap'), {
@@ -525,6 +526,18 @@ export default function Home() {
           {/* Species List Sidebar */}
           {searchedLocation && !error && (
             <SidebarSpeciesList
+              coordinates={searchCoordinates}
+              radius={radius}
+              filterTerm={filterTerm}
+              selectedStatuses={selectedStatuses}
+              selectedVernalPoolStatuses={selectedVernalPoolStatuses}
+              showSGCN={showSGCN}
+            />
+          )}
+
+          {/* GBIF Species List Sidebar */}
+          {searchedLocation && !error && (
+            <SidebarGBIFSpeciesList
               coordinates={searchCoordinates}
               radius={radius}
               filterTerm={filterTerm}

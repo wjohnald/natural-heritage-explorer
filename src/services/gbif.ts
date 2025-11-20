@@ -167,3 +167,37 @@ export function formatGBIFDate(obs: GBIFObservation): string {
 
     return 'Unknown';
 }
+
+/**
+ * Fetch GBIF species counts within a radius of given coordinates
+ */
+export async function fetchGBIFSpeciesCounts(
+    coordinates: Coordinates,
+    radiusMiles: number
+): Promise<{
+    count: number;
+    taxon: {
+        name: string;
+        preferred_common_name?: string;
+        default_photo?: { medium_url?: string }
+    };
+    stateProtection?: string;
+    conservationNeed?: boolean;
+    vernalPoolStatus?: string;
+}[]> {
+    try {
+        const url = `/api/gbif-species-counts?lat=${coordinates.lat}&lon=${coordinates.lon}&radius=${radiusMiles}`;
+        const response = await fetch(url);
+
+        if (!response.ok) {
+            const errorData = await response.json();
+            throw new Error(errorData.error || 'Failed to fetch GBIF species counts');
+        }
+
+        const data = await response.json();
+        return data.results;
+    } catch (error) {
+        console.error('Error fetching GBIF species counts:', error);
+        return [];
+    }
+}
