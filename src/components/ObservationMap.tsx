@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { MapContainer, TileLayer, CircleMarker, Popup, Circle } from 'react-leaflet';
+import { MapContainer, TileLayer, CircleMarker, Popup, Circle, useMapEvents } from 'react-leaflet';
 import { iNaturalistObservation, GBIFObservation, Coordinates } from '@/types';
 import 'leaflet/dist/leaflet.css';
 
@@ -10,11 +10,27 @@ interface ObservationMapProps {
   searchCoordinates?: Coordinates;
   radius?: number; // in miles
   hoveredSpecies?: string | null;
+  onMapClick?: (coordinates: Coordinates) => void;
+}
+
+// Component to handle map clicks
+function MapClickHandler({ onMapClick }: { onMapClick?: (coordinates: Coordinates) => void }) {
+  useMapEvents({
+    click: (e) => {
+      if (onMapClick) {
+        onMapClick({
+          lat: e.latlng.lat,
+          lon: e.latlng.lng,
+        });
+      }
+    },
+  });
+  return null;
 }
 
 const MILES_TO_METERS = 1609.34;
 
-export default function ObservationMap({ observations, searchCoordinates, radius = 0.5, hoveredSpecies }: ObservationMapProps) {
+export default function ObservationMap({ observations, searchCoordinates, radius = 0.5, hoveredSpecies, onMapClick }: ObservationMapProps) {
   const [isMounted, setIsMounted] = useState(false);
 
   // Prevent hydration errors by only rendering map on client side
@@ -72,13 +88,32 @@ export default function ObservationMap({ observations, searchCoordinates, radius
 
   return (
     <div style={{ marginBottom: '2rem' }}>
-      <div className="map-wrapper">
+      <div className="map-wrapper" style={{ position: 'relative' }}>
+        {onMapClick && (
+          <div style={{
+            position: 'absolute',
+            top: '10px',
+            right: '10px',
+            zIndex: 1000,
+            background: 'var(--bg-primary)',
+            padding: '8px 12px',
+            borderRadius: '6px',
+            boxShadow: '0 2px 8px rgba(0,0,0,0.15)',
+            fontSize: '0.875rem',
+            color: 'var(--text-secondary)',
+            border: '1px solid var(--border-color)',
+            pointerEvents: 'none',
+          }}>
+            💡 Click the map to search a new location
+          </div>
+        )}
         <MapContainer
           center={center}
           zoom={13}
-          style={{ height: '400px', width: '100%', borderRadius: '0.5rem' }}
+          style={{ height: '400px', width: '100%', borderRadius: '0.5rem', cursor: onMapClick ? 'crosshair' : 'grab' }}
           scrollWheelZoom={true}
         >
+          <MapClickHandler onMapClick={onMapClick} />
           <TileLayer
             attribution='Tiles &copy; Esri &mdash; Esri, DeLorme, NAVTEQ, TomTom, Intermap, iPC, USGS, FAO, NPS, NRCAN, GeoBase, Kadaster NL, Ordnance Survey, Esri Japan, METI, Esri China (Hong Kong), and the GIS User Community'
             url="https://server.arcgisonline.com/ArcGIS/rest/services/World_Topo_Map/MapServer/tile/{z}/{y}/{x}"
