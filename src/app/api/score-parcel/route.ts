@@ -89,9 +89,50 @@ const SCORING_CRITERIA = [
         score: 1,
         serviceUrl: 'https://gisservices.its.ny.gov/arcgis/rest/services/AgDistricts_2017/MapServer/0',
     },
+    // Recently added criteria (public REST APIs)
+    {
+        category: 'Streams and Wetlands',
+        name: 'FEMA Flood Hazard Areas',
+        score: 1,
+        serviceUrl: 'https://hazards.fema.gov/gis/nfhl/rest/services/public/NFHL/MapServer/28', // Special Flood Hazard Areas
+    },
+    {
+        category: 'Agricultural',
+        name: 'Prime or Statewide Important Farmland Soils',
+        score: 2,
+        serviceUrl: 'https://landscape11.arcgis.com/arcgis/rest/services/USA_Soils_Map_Units/MapServer/0',
+        notes: 'Query for mukey then check if Prime Farmland or Statewide Important',
+    },
+    {
+        category: 'Streams and Wetlands',
+        name: 'NRCS Hydric Soils',
+        score: 1,
+        serviceUrl: 'https://landscape11.arcgis.com/arcgis/rest/services/USA_Soils_Map_Units/MapServer/0',
+        notes: 'Query for mukey then check hydric rating',
+    },
+    {
+        category: 'Forests and Woodlands',
+        name: 'Adjacent to protected land',
+        score: 1,
+        serviceUrl: 'https://services1.arcgis.com/ERdCHt0GP5kZ89ro/arcgis/rest/services/PAD_US3_0Combined/FeatureServer/0',
+        buffer: 0, // Check for adjacency (touching)
+    },
+    {
+        category: 'Recreation and Trails',
+        name: 'Adjacent to protected lands',
+        score: 1.5,
+        serviceUrl: 'https://services1.arcgis.com/ERdCHt0GP5kZ89ro/arcgis/rest/services/PAD_US3_0Combined/FeatureServer/0',
+        buffer: 0, // Check for adjacency (touching)
+    },
+    {
+        category: 'Agricultural',
+        name: 'Adjacent to protected land',
+        score: 1,
+        serviceUrl: 'https://services1.arcgis.com/ERdCHt0GP5kZ89ro/arcgis/rest/services/PAD_US3_0Combined/FeatureServer/0',
+        buffer: 0, // Check for adjacency (touching)
+    },
 ];
 
-// Helper to query ArcGIS feature service
 // Helper to query ArcGIS feature service
 async function queryFeatureService(
     serviceUrl: string,
@@ -289,14 +330,10 @@ export async function GET(request: Request) {
             { category: 'Wildlife Habitat', name: 'Vernal Pool with 750\' buffer', score: 1, dataSource: 'Hudsonia or local inventories (vernal_pools_buffered.shp)', notes: 'Includes Intermittent Woodland Pools with 750\' buffer per Hudsonia Report' },
             { category: 'Wildlife Habitat', name: 'Hudsonia Mapped Crest/ledge/talus w/600\' buffer', score: 1, dataSource: 'Contact Hudsonia (hudsonia_crest_ledge_talus.shp)', notes: '600\' buffer based on Hudsonia report' },
             { category: 'Forests and Woodlands', name: 'TNC Matrix Forest Blocks or Linkage Zones', score: 1 },
-            { category: 'Forests and Woodlands', name: 'NYNHP Core Forests', score: 1 },
-            { category: 'Forests and Woodlands', name: 'NYNHP High Ranking Forests (60+ percentile)', score: 1 },
-            { category: 'Forests and Woodlands', name: 'NYNHP Roadless Blocks (100+ acres)', score: 1 },
-            { category: 'Forests and Woodlands', name: 'Adjacent to protected land', score: 1 },
-            { category: 'Streams and Wetlands', name: 'FEMA Flood Hazard Areas', score: 1 },
-            { category: 'Streams and Wetlands', name: 'NYNHP Riparian Buffers or w/in 100\' of stream or 650\' of Rondout Creek and tribs', score: 1 },
-            { category: 'Streams and Wetlands', name: 'NRCS Hydric Soils', score: 1 },
-            { category: 'Recreation and Trails', name: 'Adjacent to protected lands', score: 1.5 },
+            { category: 'Forests and Woodlands', name: 'NYNHP Core Forests', score: 1, dataSource: 'NYS GIS Clearinghouse' },
+            { category: 'Forests and Woodlands', name: 'NYNHP High Ranking Forests (60+ percentile)', score: 1, dataSource: 'NYS GIS Clearinghouse' },
+            { category: 'Forests and Woodlands', name: 'NYNHP Roadless Blocks (100+ acres)', score: 1, dataSource: 'NYS GIS Clearinghouse' },
+            { category: 'Streams and Wetlands', name: 'NYNHP Riparian Buffers or w/in 100\' of stream or 650\' of Rondout Creek and tribs', score: 1, dataSource: 'Calculate from DEC streams layer' },
             { category: 'Recreation and Trails', name: 'Adjacent to Existing Trails', score: 1 },
             { category: 'Recreation and Trails', name: 'Adjacent to Mohonk Preserve', score: 1 },
             { category: 'Recreation and Trails', name: 'Within potential trail connection area', score: 1 },
@@ -311,11 +348,9 @@ export async function GET(request: Request) {
             { category: 'Historic and Cultural', name: 'Adjacent to D&H Canal', score: 1 },
             { category: 'Historic and Cultural', name: 'Adjacent to Special Properties', score: 1 },
             { category: 'Historic and Cultural', name: 'Cemeteries', score: 1 },
-            { category: 'Agricultural', name: 'Prime or Statewide Important Farmland Soils', score: 2 },
-            { category: 'Agricultural', name: 'Prime Soils if Drained', score: 1 },
-            { category: 'Agricultural', name: 'Coded as an Active farm and/or Receiving an Ag Tax exemption', score: 1 },
-            { category: 'Agricultural', name: 'Adjacent to protected land', score: 1 },
-            { category: 'Agricultural', name: 'Century Farms', score: 1 },
+            { category: 'Agricultural', name: 'Prime Soils if Drained', score: 1, dataSource: 'SSURGO via Web Soil Survey' },
+            { category: 'Agricultural', name: 'Coded as an Active farm and/or Receiving an Ag Tax exemption', score: 1, dataSource: 'County tax assessor data' },
+            { category: 'Agricultural', name: 'Century Farms', score: 1, dataSource: 'NYS Ag & Markets' },
         ];
 
         for (const criterion of unimplementedCriteria) {

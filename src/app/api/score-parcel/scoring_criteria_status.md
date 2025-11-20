@@ -10,9 +10,9 @@ This checklist tracks the implementation status of all scoring criteria defined 
 
 ## Drinking Water
 - [x] EPA Principal Aquifers
-- [ ] Bedrock Aquifers (Vly School Rondout)
-- [ ] Ashokan Watershed
-- [ ] DEC Class A Streams outside of Ashokan Watershed
+- [ ] Bedrock Aquifers (Vly School Rondout) *(awaiting data: NYS GIS Clearinghouse)*
+- [ ] Ashokan Watershed *(awaiting data: NYS Open Data Portal)*
+- [ ] DEC Class A Streams outside of Ashokan Watershed *(awaiting data: DEC Streams Layer)*
 
 ## Wildlife Habitat
 - [x] DEC SBAs
@@ -29,43 +29,43 @@ This checklist tracks the implementation status of all scoring criteria defined 
 ## Forests and Woodlands
 - [x] NYNHP Important Areas for Rare Plants
 - [ ] TNC Matrix Forest Blocks or Linkage Zones
-- [ ] NYNHP Core Forests
-- [ ] NYNHP High Ranking Forests (60+ percentile)
-- [ ] NYNHP Roadless Blocks (100+ acres)
-- [ ] Adjacent to protected land
+- [ ] NYNHP Core Forests *(awaiting data: NYS GIS Clearinghouse)*
+- [ ] NYNHP High Ranking Forests (60+ percentile) *(awaiting data: NYS GIS Clearinghouse)*
+- [ ] NYNHP Roadless Blocks (100+ acres) *(awaiting data: NYS GIS Clearinghouse)*
+- [x] Adjacent to protected land **NEW** *(using PAD-US 3.0)*
 
 ## Streams and Wetlands
 - [x] Wetland with 100' buffer
 - [x] NYNHP Important Areas for Fish
-- [ ] FEMA Flood Hazard Areas
-- [ ] NYNHP Riparian Buffers or w/in 100' of stream or 650' of Rondout Creek and tribs
-- [ ] NRCS Hydric Soils
+- [x] FEMA Flood Hazard Areas **NEW** *(using FEMA NFHL service)*
+- [ ] NYNHP Riparian Buffers or w/in 100' of stream or 650' of Rondout Creek and tribs *(awaiting data: DEC streams layer)*
+- [x] NRCS Hydric Soils **NEW** *(using SSURGO Map Units service)*
 
 ## Recreation and Trails
-- [ ] Adjacent to protected lands
-- [ ] Adjacent to Existing Trails
-- [ ] Adjacent to Mohonk Preserve
-- [ ] Within potential trail connection area
-- [ ] Within 1 mile of hamlet centers
+- [x] Adjacent to protected lands **NEW** *(using PAD-US 3.0)*
+- [ ] Adjacent to Existing Trails *(awaiting data: DEC or Parks data)*
+- [ ] Adjacent to Mohonk Preserve *(awaiting data: Contact Mohonk Preserve)*
+- [ ] Within potential trail connection area *(requires custom analysis)*
+- [ ] Within 1 mile of hamlet centers *(awaiting data: Census TIGER data)*
 
 ## Scenic Areas
-- [ ] Adjacent to SMSB
-- [ ] Adjacent to local scenic roads
-- [ ] Areas visible from SMSB and local scenic roads
-- [ ] Areas visible from-to Sky Top
-- [ ] Gateway areas
+- [ ] Adjacent to SMSB *(awaiting data: NYS DOT or tourism data)*
+- [ ] Adjacent to local scenic roads *(awaiting data: Local designation data)*
+- [ ] Areas visible from SMSB and local scenic roads *(requires viewshed analysis from DEM)*
+- [ ] Areas visible from-to Sky Top *(requires viewshed analysis from DEM)*
+- [ ] Gateway areas *(requires custom analysis)*
 
 ## Historic and Cultural
-- [ ] Designated Historic Sites and Districts OR Houses built prior to 1900
-- [ ] Historic Marker sites
-- [ ] Adjacent to D&H Canal
-- [ ] Adjacent to Special Properties
-- [ ] Cemeteries
+- [ ] Designated Historic Sites and Districts OR Houses built prior to 1900 *(awaiting data: NPS National Register)*
+- [ ] Historic Marker sites *(awaiting data: State Historic Preservation Office)*
+- [ ] Adjacent to D&H Canal *(awaiting data: Historical canal routes)*
+- [ ] Adjacent to Special Properties *(requires custom list)*
+- [ ] Cemeteries *(awaiting data: County GIS or USGS GNIS)*
 
 ## Agricultural
 - [x] Agricultural District
-- [ ] Prime or Statewide Important Farmland Soils
-- [ ] Prime Soils if Drained
-- [ ] Coded as an Active farm and/or Receiving an Ag Tax exemption
-- [ ] Adjacent to protected land
-- [ ] Century Farms
+- [x] Prime or Statewide Important Farmland Soils **NEW** *(using SSURGO Map Units service)*
+- [ ] Prime Soils if Drained *(awaiting data: SSURGO via Web Soil Survey)*
+- [ ] Coded as an Active farm and/or Receiving an Ag Tax exemption *(awaiting data: County tax assessor)*
+- [x] Adjacent to protected land **NEW** *(using PAD-US 3.0)*
+- [ ] Century Farms *(awaiting data: NYS Ag & Markets)*
