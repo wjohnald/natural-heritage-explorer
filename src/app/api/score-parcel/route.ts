@@ -1,7 +1,29 @@
 import { NextResponse } from 'next/server';
 import { geocodeAddress } from '@/services/server-geocoding';
 
-// Scoring criteria with service URLs
+/**
+ * Parcel Scoring API
+ * 
+ * This API scores parcels based on conservation value using multiple criteria categories:
+ * - Drinking Water, Wildlife Habitat, Forests and Woodlands, Streams and Wetlands,
+ * - Recreation and Trails, Scenic Areas, Historic and Cultural, Agricultural
+ * 
+ * ARCHITECTURE:
+ * - Tier 1 (Implemented): Criteria queryable via public REST APIs (real-time)
+ * - Tier 2 (Unimplemented): Criteria requiring static data files (shapefiles)
+ *   that need to be obtained, hosted, and converted to queryable services
+ * 
+ * TO ADD MISSING CRITERIA:
+ * 1. Obtain data files from sources listed in parcel_scoring_methodology.csv
+ * 2. Upload to ArcGIS Online or local PostGIS database
+ * 3. Move criterion from unimplementedCriteria to SCORING_CRITERIA array
+ * 4. Add serviceUrl (and optional buffer/layers parameters)
+ * 5. Update scoring_criteria_status.md
+ * 
+ * See: parcel_scoring_methodology.csv for complete data source information
+ */
+
+// Scoring criteria with service URLs (REST API queryable)
 const SCORING_CRITERIA = [
     {
         category: 'Drinking Water',
@@ -255,16 +277,17 @@ export async function GET(request: Request) {
             });
         }
 
-        // Add unimplemented criteria (stubbed)
+        // Add unimplemented criteria (require static data files not available via public REST API)
+        // See parcel_scoring_methodology.csv for data source details
         const unimplementedCriteria = [
-            { category: 'Drinking Water', name: 'Bedrock Aquifers (Vly School Rondout)', score: 1 },
-            { category: 'Drinking Water', name: 'Ashokan Watershed', score: 1 },
-            { category: 'Drinking Water', name: 'DEC Class A Streams outside of Ashokan Watershed', score: 1 },
-            { category: 'Wildlife Habitat', name: 'TNC Resilient Sites', score: 1 },
-            { category: 'Wildlife Habitat', name: 'NYNHP Modeled Rare Species', score: 1.5 },
-            { category: 'Wildlife Habitat', name: 'Ulster County Habitat Cores', score: 1 },
-            { category: 'Wildlife Habitat', name: 'Vernal Pool with 750\' buffer', score: 1 },
-            { category: 'Wildlife Habitat', name: 'Hudsonia Mapped Crest/ledge/talus w/600\' buffer', score: 1 },
+            { category: 'Drinking Water', name: 'Bedrock Aquifers (Vly School Rondout)', score: 1, dataSource: 'NYS GIS Clearinghouse' },
+            { category: 'Drinking Water', name: 'Ashokan Watershed', score: 1, dataSource: 'NYS Open Data Portal' },
+            { category: 'Drinking Water', name: 'DEC Class A Streams outside of Ashokan Watershed', score: 1, dataSource: 'DEC Streams Layer' },
+            { category: 'Wildlife Habitat', name: 'TNC Resilient Sites', score: 1, dataSource: 'TNC Data Basin (tnc_resilient_sites.shp)', notes: 'Only linkages present in town' },
+            { category: 'Wildlife Habitat', name: 'NYNHP Modeled Rare Species', score: 1.5, dataSource: 'Contact NYNHP (nynhp_modeled_rare_species.shp)', notes: '1-2 species: 1pt, 3+ species: 2pts' },
+            { category: 'Wildlife Habitat', name: 'Ulster County Habitat Cores', score: 1, dataSource: 'Ulster County Planning (ulster_habitat_cores.shp)' },
+            { category: 'Wildlife Habitat', name: 'Vernal Pool with 750\' buffer', score: 1, dataSource: 'Hudsonia or local inventories (vernal_pools_buffered.shp)', notes: 'Includes Intermittent Woodland Pools with 750\' buffer per Hudsonia Report' },
+            { category: 'Wildlife Habitat', name: 'Hudsonia Mapped Crest/ledge/talus w/600\' buffer', score: 1, dataSource: 'Contact Hudsonia (hudsonia_crest_ledge_talus.shp)', notes: '600\' buffer based on Hudsonia report' },
             { category: 'Forests and Woodlands', name: 'TNC Matrix Forest Blocks or Linkage Zones', score: 1 },
             { category: 'Forests and Woodlands', name: 'NYNHP Core Forests', score: 1 },
             { category: 'Forests and Woodlands', name: 'NYNHP High Ranking Forests (60+ percentile)', score: 1 },
@@ -303,6 +326,8 @@ export async function GET(request: Request) {
                 earnedScore: 0,
                 matched: false,
                 implemented: false,
+                dataSource: (criterion as any).dataSource,
+                notes: (criterion as any).notes,
             });
         }
 
