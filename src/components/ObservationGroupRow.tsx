@@ -28,8 +28,8 @@ export default function ObservationGroupRow({ group, searchCoordinates, onHover,
                     <div className="group-title-section">
                         <h3 className="group-title">{group.commonName}</h3>
                         <span className="group-subtitle">{group.scientificName}</span>
-                        {/* Conservation badges */}
-                        {group.observations.length > 0 && (group.observations[0].stateProtection || group.observations[0].conservationNeed) && (
+                        {/* Conservation and Vernal Pool badges */}
+                        {group.observations.length > 0 && (group.observations[0].stateProtection || group.observations[0].conservationNeed || group.observations[0].vernalPoolStatus) && (
                             <div className="conservation-badges">
                                 {group.observations[0].stateProtection && (
                                     <span 
@@ -52,6 +52,19 @@ export default function ObservationGroupRow({ group, searchCoordinates, onHover,
                                 {group.observations[0].conservationNeed && (
                                     <span className="badge-sgcn" title="Species of Greatest Conservation Need">
                                         SGCN
+                                    </span>
+                                )}
+                                {group.observations[0].vernalPoolStatus && (
+                                    <span 
+                                        className={`badge-vernal ${
+                                            group.observations[0].vernalPoolStatus === 'Obligate' ? 'badge-vernal-obligate' : 'badge-vernal-facultative'
+                                        }`}
+                                        title={`Vernal Pool Species - ${group.observations[0].vernalPoolStatus}`}
+                                    >
+                                        <svg className="badge-icon" fill="currentColor" viewBox="0 0 20 20">
+                                            <path d="M10 2a1 1 0 011 1v1.323l3.954 1.582 1.599-.8a1 1 0 01.894 1.79l-1.233.616 1.738 5.42a1 1 0 01-.285 1.05A3.989 3.989 0 0115 15a3.989 3.989 0 01-2.667-1.019 1 1 0 01-.285-1.05l1.715-5.349L11 6.477V16h2a1 1 0 110 2H7a1 1 0 110-2h2V6.477L6.237 7.582l1.715 5.349a1 1 0 01-.285 1.05A3.989 3.989 0 015 15a3.989 3.989 0 01-2.667-1.019 1 1 0 01-.285-1.05l1.738-5.42-1.233-.617a1 1 0 01.894-1.788l1.599.799L9 4.323V3a1 1 0 011-1z"/>
+                                        </svg>
+                                        VP-{group.observations[0].vernalPoolStatus === 'Obligate' ? 'OBL' : 'FAC'}
                                     </span>
                                 )}
                             </div>

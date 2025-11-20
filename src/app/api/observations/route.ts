@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getConservationStatus } from '../../../lib/conservationStatus';
+import { getVernalPoolStatus } from '../../../lib/vernalPoolStatus';
 
 const INATURALIST_API_BASE = 'https://api.inaturalist.org/v1';
 const MILES_TO_KM = 1.60934;
@@ -30,13 +31,20 @@ export async function GET(request: NextRequest) {
         const observations: any[] = pageData.results;
         const totalResults = pageData.total_results;
 
-        // Enrich observations with conservation data
+        // Enrich observations with conservation and vernal pool data
         for (const obs of observations) {
             if (obs.taxon && obs.taxon.name) {
+                // Get conservation status
                 const conservationData = await getConservationStatus(obs.taxon.name);
                 if (conservationData) {
                     obs.stateProtection = conservationData.stateProtection;
                     obs.conservationNeed = conservationData.conservationNeed;
+                }
+                
+                // Get vernal pool status
+                const vernalPoolData = await getVernalPoolStatus(obs.taxon.name);
+                if (vernalPoolData) {
+                    obs.vernalPoolStatus = vernalPoolData.vernalPoolStatus;
                 }
             }
         }

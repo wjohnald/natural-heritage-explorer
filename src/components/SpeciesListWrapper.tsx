@@ -307,9 +307,6 @@ export default function SpeciesListWrapper({ groups, children }: SpeciesListWrap
                                 <div style={{ fontWeight: 500, color: 'var(--text-primary)' }}>
                                     {group.commonName}
                                 </div>
-                                <div style={{ fontStyle: 'italic', fontSize: '0.7rem' }}>
-                                    {group.scientificName}
-                                </div>
                             </div>
                         ))}
                     </div>

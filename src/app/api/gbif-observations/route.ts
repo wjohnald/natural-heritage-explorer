@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getConservationStatus } from '../../../lib/conservationStatus';
+import { getVernalPoolStatus } from '../../../lib/vernalPoolStatus';
 import { GBIFObservation, GBIFResponse } from '../../../types';
 
 const GBIF_API_BASE = 'https://api.gbif.org/v1';
@@ -42,23 +43,31 @@ export async function GET(request: NextRequest) {
         const observations: GBIFObservation[] = gbifData.results;
         const totalResults = gbifData.count;
 
-        // Enrich observations with conservation data
+        // Enrich observations with conservation and vernal pool data
         for (const obs of observations) {
             if (obs.scientificName) {
-                // Try exact match first
+                // Clean scientific name (remove author names)
+                const cleanName = obs.scientificName
+                    .split(/[,(]/)[0]  // Split on comma or opening parenthesis
+                    .trim();
+                
+                // Try exact match first for conservation data
                 let conservationData = await getConservationStatus(obs.scientificName);
                 
-                // If no match, try without author names (everything before first comma or parenthesis)
+                // If no match, try without author names
                 if (!conservationData) {
-                    const nameWithoutAuthor = obs.scientificName
-                        .split(/[,(]/)[0]  // Split on comma or opening parenthesis
-                        .trim();
-                    conservationData = await getConservationStatus(nameWithoutAuthor);
+                    conservationData = await getConservationStatus(cleanName);
                 }
                 
                 if (conservationData) {
                     obs.stateProtection = conservationData.stateProtection;
                     obs.conservationNeed = conservationData.conservationNeed;
+                }
+                
+                // Get vernal pool status (use clean name)
+                const vernalPoolData = await getVernalPoolStatus(cleanName);
+                if (vernalPoolData) {
+                    obs.vernalPoolStatus = vernalPoolData.vernalPoolStatus;
                 }
             }
 

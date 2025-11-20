@@ -40,6 +40,7 @@ export interface iNaturalistObservation {
   uri?: string;
   stateProtection?: string | null; // NYS Heritage Mapper - State Protection Status
   conservationNeed?: string | null; // NYS Heritage Mapper - Species of Greatest Conservation Need
+  vernalPoolStatus?: string | null; // NYS Heritage Mapper - Vernal Pool Status (Obligate/Facultative)
   identifications_count?: number;
   geojson?: {
     coordinates: [number, number];
@@ -124,6 +125,7 @@ export interface GBIFObservation {
   // NYS Heritage Mapper - Conservation Status
   stateProtection?: string | null;
   conservationNeed?: string | null;
+  vernalPoolStatus?: string | null; // NYS Heritage Mapper - Vernal Pool Status (Obligate/Facultative)
   // For compatibility with map code
   geojson?: {
     coordinates: [number, number];
