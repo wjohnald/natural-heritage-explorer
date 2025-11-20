@@ -61,6 +61,12 @@ const SCORING_CRITERIA = [
         serviceUrl: 'https://gisservices.dec.ny.gov/arcgis/rest/services/hvnrm/hvnrm_biodiversity/MapServer',
         layers: [5, 6], // Fish and coldwater stream layers
     },
+    {
+        category: 'Agricultural',
+        name: 'Agricultural District',
+        score: 1,
+        serviceUrl: 'https://gisservices.its.ny.gov/arcgis/rest/services/AgDistricts_2017/MapServer/0',
+    },
 ];
 
 // Helper to query ArcGIS feature service
@@ -130,7 +136,7 @@ async function getParcelGeometry(address: string): Promise<any> {
     try {
         // First geocode the address to get coordinates
         const geocodeResult = await geocodeAddress(address);
-        
+
         if (!geocodeResult.coordinates || !geocodeResult.coordinates.lat || !geocodeResult.coordinates.lon) {
             throw new Error('Failed to geocode address');
         }
@@ -284,7 +290,6 @@ export async function GET(request: Request) {
             { category: 'Historic and Cultural', name: 'Cemeteries', score: 1 },
             { category: 'Agricultural', name: 'Prime or Statewide Important Farmland Soils', score: 2 },
             { category: 'Agricultural', name: 'Prime Soils if Drained', score: 1 },
-            { category: 'Agricultural', name: 'Agricultural District', score: 1 },
             { category: 'Agricultural', name: 'Coded as an Active farm and/or Receiving an Ag Tax exemption', score: 1 },
             { category: 'Agricultural', name: 'Adjacent to protected land', score: 1 },
             { category: 'Agricultural', name: 'Century Farms', score: 1 },
