@@ -15,13 +15,19 @@ export default function GBIFSpeciesListWrapper({ groups, children }: GBIFSpecies
 
     // Calculate statistics
     const uniqueSpeciesCount = groups.length;
-    
+
     // Group species by conservation status
     const statusGroups = {
         endangered: groups.filter(g => g.observations[0]?.stateProtection === 'Endangered'),
         threatened: groups.filter(g => g.observations[0]?.stateProtection === 'Threatened'),
         specialConcern: groups.filter(g => g.observations[0]?.stateProtection === 'Special Concern'),
         sgcn: groups.filter(g => !g.observations[0]?.stateProtection && g.observations[0]?.conservationNeed),
+    };
+
+    // Group species by vernal pool status
+    const vernalPoolGroups = {
+        obligate: groups.filter(g => g.observations[0]?.vernalPoolStatus === 'Obligate'),
+        facultative: groups.filter(g => g.observations[0]?.vernalPoolStatus === 'Facultative'),
     };
 
     const statusCounts = {
@@ -31,11 +37,20 @@ export default function GBIFSpeciesListWrapper({ groups, children }: GBIFSpecies
         sgcn: statusGroups.sgcn.length,
     };
 
-    const hasConservationStatus = 
-        statusCounts.endangered > 0 || 
-        statusCounts.threatened > 0 || 
-        statusCounts.specialConcern > 0 || 
+    const vernalPoolCounts = {
+        obligate: vernalPoolGroups.obligate.length,
+        facultative: vernalPoolGroups.facultative.length,
+    };
+
+    const hasConservationStatus =
+        statusCounts.endangered > 0 ||
+        statusCounts.threatened > 0 ||
+        statusCounts.specialConcern > 0 ||
         statusCounts.sgcn > 0;
+
+    const hasVernalPoolStatus =
+        vernalPoolCounts.obligate > 0 ||
+        vernalPoolCounts.facultative > 0;
 
     const handleStatusHover = (status: string, event: React.MouseEvent) => {
         setHoveredStatus(status);
@@ -52,6 +67,14 @@ export default function GBIFSpeciesListWrapper({ groups, children }: GBIFSpecies
             case 'threatened': return statusGroups.threatened;
             case 'specialConcern': return statusGroups.specialConcern;
             case 'sgcn': return statusGroups.sgcn;
+            default: return [];
+        }
+    };
+
+    const getSpeciesForVernalPoolStatus = (status: string): GBIFGroupedObservation[] => {
+        switch (status) {
+            case 'obligate': return vernalPoolGroups.obligate;
+            case 'facultative': return vernalPoolGroups.facultative;
             default: return [];
         }
     };
@@ -87,15 +110,15 @@ export default function GBIFSpeciesListWrapper({ groups, children }: GBIFSpecies
                     {/* Data Source and Species Count */}
                     <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', flexWrap: 'wrap' }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                            <svg 
+                            <svg
                                 style={{ width: '1.25rem', height: '1.25rem', color: '#4285f4' }}
-                                fill="currentColor" 
+                                fill="currentColor"
                                 viewBox="0 0 20 20"
                             >
                                 <path fillRule="evenodd" d="M12 1.586l-4 4v12.828l4-4V1.586zM3.707 3.293A1 1 0 002 4v10a1 1 0 00.293.707L6 18.414V5.586L3.707 3.293zM17.707 5.293L14 1.586v12.828l2.293 2.293A1 1 0 0018 16V6a1 1 0 00-.293-.707z" clipRule="evenodd" />
                             </svg>
-                            <span style={{ 
-                                fontWeight: 600, 
+                            <span style={{
+                                fontWeight: 600,
                                 fontSize: '1rem',
                                 color: 'var(--text-primary)',
                             }}>
@@ -113,20 +136,20 @@ export default function GBIFSpeciesListWrapper({ groups, children }: GBIFSpecies
 
                     {/* Conservation Status Breakdown */}
                     {hasConservationStatus && (
-                        <div style={{ 
-                            display: 'flex', 
-                            alignItems: 'center', 
-                            gap: '0.75rem', 
+                        <div style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '0.75rem',
                             flexWrap: 'wrap',
                             fontSize: '0.875rem',
                             color: 'var(--text-secondary)',
                         }}>
                             <span style={{ fontWeight: 500 }}>Conservation Status:</span>
                             {statusCounts.endangered > 0 && (
-                                <div 
-                                    style={{ 
-                                        display: 'flex', 
-                                        alignItems: 'center', 
+                                <div
+                                    style={{
+                                        display: 'flex',
+                                        alignItems: 'center',
                                         gap: '0.375rem',
                                         cursor: 'pointer',
                                         padding: '0.25rem 0.5rem',
@@ -148,10 +171,10 @@ export default function GBIFSpeciesListWrapper({ groups, children }: GBIFSpecies
                                 </div>
                             )}
                             {statusCounts.threatened > 0 && (
-                                <div 
-                                    style={{ 
-                                        display: 'flex', 
-                                        alignItems: 'center', 
+                                <div
+                                    style={{
+                                        display: 'flex',
+                                        alignItems: 'center',
                                         gap: '0.375rem',
                                         cursor: 'pointer',
                                         padding: '0.25rem 0.5rem',
@@ -173,10 +196,10 @@ export default function GBIFSpeciesListWrapper({ groups, children }: GBIFSpecies
                                 </div>
                             )}
                             {statusCounts.specialConcern > 0 && (
-                                <div 
-                                    style={{ 
-                                        display: 'flex', 
-                                        alignItems: 'center', 
+                                <div
+                                    style={{
+                                        display: 'flex',
+                                        alignItems: 'center',
                                         gap: '0.375rem',
                                         cursor: 'pointer',
                                         padding: '0.25rem 0.5rem',
@@ -198,10 +221,10 @@ export default function GBIFSpeciesListWrapper({ groups, children }: GBIFSpecies
                                 </div>
                             )}
                             {statusCounts.sgcn > 0 && (
-                                <div 
-                                    style={{ 
-                                        display: 'flex', 
-                                        alignItems: 'center', 
+                                <div
+                                    style={{
+                                        display: 'flex',
+                                        alignItems: 'center',
                                         gap: '0.375rem',
                                         cursor: 'pointer',
                                         padding: '0.25rem 0.5rem',
@@ -224,6 +247,72 @@ export default function GBIFSpeciesListWrapper({ groups, children }: GBIFSpecies
                             )}
                         </div>
                     )}
+
+                    {/* Vernal Pool Status Breakdown */}
+                    {hasVernalPoolStatus && (
+                        <div style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '0.75rem',
+                            flexWrap: 'wrap',
+                            fontSize: '0.875rem',
+                            color: 'var(--text-secondary)',
+                            borderLeft: '1px solid var(--border-color)',
+                            paddingLeft: '0.75rem',
+                        }}>
+                            <span style={{ fontWeight: 500 }}>Vernal Pool Species:</span>
+                            {vernalPoolCounts.obligate > 0 && (
+                                <div
+                                    style={{
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        gap: '0.375rem',
+                                        cursor: 'pointer',
+                                        padding: '0.25rem 0.5rem',
+                                        borderRadius: '0.375rem',
+                                        transition: 'background-color 0.2s',
+                                    }}
+                                    onMouseEnter={(e) => handleStatusHover('obligate', e)}
+                                    onMouseMove={(e) => setMousePosition({ x: e.clientX, y: e.clientY })}
+                                    onMouseLeave={handleStatusLeave}
+                                    onClickCapture={(e) => e.stopPropagation()}
+                                >
+                                    <div style={{
+                                        width: '0.5rem',
+                                        height: '0.5rem',
+                                        borderRadius: '50%',
+                                        backgroundColor: '#0ea5e9',
+                                    }} />
+                                    <span><strong>{vernalPoolCounts.obligate}</strong> Obligate</span>
+                                </div>
+                            )}
+                            {vernalPoolCounts.facultative > 0 && (
+                                <div
+                                    style={{
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        gap: '0.375rem',
+                                        cursor: 'pointer',
+                                        padding: '0.25rem 0.5rem',
+                                        borderRadius: '0.375rem',
+                                        transition: 'background-color 0.2s',
+                                    }}
+                                    onMouseEnter={(e) => handleStatusHover('facultative', e)}
+                                    onMouseMove={(e) => setMousePosition({ x: e.clientX, y: e.clientY })}
+                                    onMouseLeave={handleStatusLeave}
+                                    onClickCapture={(e) => e.stopPropagation()}
+                                >
+                                    <div style={{
+                                        width: '0.5rem',
+                                        height: '0.5rem',
+                                        borderRadius: '50%',
+                                        backgroundColor: '#6366f1',
+                                    }} />
+                                    <span><strong>{vernalPoolCounts.facultative}</strong> Facultative</span>
+                                </div>
+                            )}
+                        </div>
+                    )}
                 </div>
 
                 {/* Toggle Icon */}
@@ -234,8 +323,8 @@ export default function GBIFSpeciesListWrapper({ groups, children }: GBIFSpecies
                     alignItems: 'center',
                 }}>
                     <svg
-                        style={{ 
-                            width: '1.5rem', 
+                        style={{
+                            width: '1.5rem',
                             height: '1.5rem',
                             color: 'var(--text-secondary)',
                         }}
@@ -281,9 +370,9 @@ export default function GBIFSpeciesListWrapper({ groups, children }: GBIFSpecies
                         pointerEvents: 'none',
                     }}
                 >
-                    <div style={{ 
-                        fontSize: '0.875rem', 
-                        fontWeight: 600, 
+                    <div style={{
+                        fontSize: '0.875rem',
+                        fontWeight: 600,
                         marginBottom: '0.5rem',
                         color: 'var(--text-primary)',
                     }}>
@@ -291,17 +380,25 @@ export default function GBIFSpeciesListWrapper({ groups, children }: GBIFSpecies
                         {hoveredStatus === 'threatened' && 'Threatened Species'}
                         {hoveredStatus === 'specialConcern' && 'Special Concern Species'}
                         {hoveredStatus === 'sgcn' && 'Species of Greatest Conservation Need'}
+                        {hoveredStatus === 'obligate' && 'Obligate Vernal Pool Species'}
+                        {hoveredStatus === 'facultative' && 'Facultative Vernal Pool Species'}
                     </div>
-                    <div style={{ 
+                    <div style={{
                         fontSize: '0.75rem',
                         color: 'var(--text-secondary)',
                     }}>
-                        {getSpeciesForStatus(hoveredStatus).map((group, index) => (
-                            <div 
+                        {(hoveredStatus === 'obligate' || hoveredStatus === 'facultative'
+                            ? getSpeciesForVernalPoolStatus(hoveredStatus)
+                            : getSpeciesForStatus(hoveredStatus)
+                        ).map((group, index) => (
+                            <div
                                 key={group.scientificName}
-                                style={{ 
+                                style={{
                                     padding: '0.25rem 0',
-                                    borderBottom: index < getSpeciesForStatus(hoveredStatus).length - 1 ? '1px solid var(--border-color)' : 'none',
+                                    borderBottom: index < (hoveredStatus === 'obligate' || hoveredStatus === 'facultative'
+                                        ? getSpeciesForVernalPoolStatus(hoveredStatus)
+                                        : getSpeciesForStatus(hoveredStatus)
+                                    ).length - 1 ? '1px solid var(--border-color)' : 'none',
                                 }}
                             >
                                 <div style={{ fontWeight: 500, color: 'var(--text-primary)' }}>

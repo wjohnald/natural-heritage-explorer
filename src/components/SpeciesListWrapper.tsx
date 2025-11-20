@@ -24,6 +24,12 @@ export default function SpeciesListWrapper({ groups, children }: SpeciesListWrap
         sgcn: groups.filter(g => !g.observations[0]?.stateProtection && g.observations[0]?.conservationNeed),
     };
 
+    // Group species by vernal pool status
+    const vernalPoolGroups = {
+        obligate: groups.filter(g => g.observations[0]?.vernalPoolStatus === 'Obligate'),
+        facultative: groups.filter(g => g.observations[0]?.vernalPoolStatus === 'Facultative'),
+    };
+
     const statusCounts = {
         endangered: statusGroups.endangered.length,
         threatened: statusGroups.threatened.length,
@@ -31,11 +37,20 @@ export default function SpeciesListWrapper({ groups, children }: SpeciesListWrap
         sgcn: statusGroups.sgcn.length,
     };
 
+    const vernalPoolCounts = {
+        obligate: vernalPoolGroups.obligate.length,
+        facultative: vernalPoolGroups.facultative.length,
+    };
+
     const hasConservationStatus = 
         statusCounts.endangered > 0 || 
         statusCounts.threatened > 0 || 
         statusCounts.specialConcern > 0 || 
         statusCounts.sgcn > 0;
+
+    const hasVernalPoolStatus = 
+        vernalPoolCounts.obligate > 0 || 
+        vernalPoolCounts.facultative > 0;
 
     const handleStatusHover = (status: string, event: React.MouseEvent) => {
         setHoveredStatus(status);
@@ -52,6 +67,14 @@ export default function SpeciesListWrapper({ groups, children }: SpeciesListWrap
             case 'threatened': return statusGroups.threatened;
             case 'specialConcern': return statusGroups.specialConcern;
             case 'sgcn': return statusGroups.sgcn;
+            default: return [];
+        }
+    };
+
+    const getSpeciesForVernalPoolStatus = (status: string): GroupedObservation[] => {
+        switch (status) {
+            case 'obligate': return vernalPoolGroups.obligate;
+            case 'facultative': return vernalPoolGroups.facultative;
             default: return [];
         }
     };
@@ -224,6 +247,72 @@ export default function SpeciesListWrapper({ groups, children }: SpeciesListWrap
                             )}
                         </div>
                     )}
+
+                    {/* Vernal Pool Status Breakdown */}
+                    {hasVernalPoolStatus && (
+                        <div style={{ 
+                            display: 'flex', 
+                            alignItems: 'center', 
+                            gap: '0.75rem', 
+                            flexWrap: 'wrap',
+                            fontSize: '0.875rem',
+                            color: 'var(--text-secondary)',
+                            borderLeft: '1px solid var(--border-color)',
+                            paddingLeft: '0.75rem',
+                        }}>
+                            <span style={{ fontWeight: 500 }}>Vernal Pool Species:</span>
+                            {vernalPoolCounts.obligate > 0 && (
+                                <div 
+                                    style={{ 
+                                        display: 'flex', 
+                                        alignItems: 'center', 
+                                        gap: '0.375rem',
+                                        cursor: 'pointer',
+                                        padding: '0.25rem 0.5rem',
+                                        borderRadius: '0.375rem',
+                                        transition: 'background-color 0.2s',
+                                    }}
+                                    onMouseEnter={(e) => handleStatusHover('obligate', e)}
+                                    onMouseMove={(e) => setMousePosition({ x: e.clientX, y: e.clientY })}
+                                    onMouseLeave={handleStatusLeave}
+                                    onClickCapture={(e) => e.stopPropagation()}
+                                >
+                                    <div style={{
+                                        width: '0.5rem',
+                                        height: '0.5rem',
+                                        borderRadius: '50%',
+                                        backgroundColor: '#0ea5e9',
+                                    }} />
+                                    <span><strong>{vernalPoolCounts.obligate}</strong> Obligate</span>
+                                </div>
+                            )}
+                            {vernalPoolCounts.facultative > 0 && (
+                                <div 
+                                    style={{ 
+                                        display: 'flex', 
+                                        alignItems: 'center', 
+                                        gap: '0.375rem',
+                                        cursor: 'pointer',
+                                        padding: '0.25rem 0.5rem',
+                                        borderRadius: '0.375rem',
+                                        transition: 'background-color 0.2s',
+                                    }}
+                                    onMouseEnter={(e) => handleStatusHover('facultative', e)}
+                                    onMouseMove={(e) => setMousePosition({ x: e.clientX, y: e.clientY })}
+                                    onMouseLeave={handleStatusLeave}
+                                    onClickCapture={(e) => e.stopPropagation()}
+                                >
+                                    <div style={{
+                                        width: '0.5rem',
+                                        height: '0.5rem',
+                                        borderRadius: '50%',
+                                        backgroundColor: '#6366f1',
+                                    }} />
+                                    <span><strong>{vernalPoolCounts.facultative}</strong> Facultative</span>
+                                </div>
+                            )}
+                        </div>
+                    )}
                 </div>
 
                 {/* Toggle Icon */}
@@ -291,17 +380,25 @@ export default function SpeciesListWrapper({ groups, children }: SpeciesListWrap
                         {hoveredStatus === 'threatened' && 'Threatened Species'}
                         {hoveredStatus === 'specialConcern' && 'Special Concern Species'}
                         {hoveredStatus === 'sgcn' && 'Species of Greatest Conservation Need'}
+                        {hoveredStatus === 'obligate' && 'Obligate Vernal Pool Species'}
+                        {hoveredStatus === 'facultative' && 'Facultative Vernal Pool Species'}
                     </div>
                     <div style={{ 
                         fontSize: '0.75rem',
                         color: 'var(--text-secondary)',
                     }}>
-                        {getSpeciesForStatus(hoveredStatus).map((group, index) => (
+                        {(hoveredStatus === 'obligate' || hoveredStatus === 'facultative' 
+                            ? getSpeciesForVernalPoolStatus(hoveredStatus) 
+                            : getSpeciesForStatus(hoveredStatus)
+                        ).map((group, index) => (
                             <div 
                                 key={group.scientificName}
                                 style={{ 
                                     padding: '0.25rem 0',
-                                    borderBottom: index < getSpeciesForStatus(hoveredStatus).length - 1 ? '1px solid var(--border-color)' : 'none',
+                                    borderBottom: index < (hoveredStatus === 'obligate' || hoveredStatus === 'facultative' 
+                                        ? getSpeciesForVernalPoolStatus(hoveredStatus) 
+                                        : getSpeciesForStatus(hoveredStatus)
+                                    ).length - 1 ? '1px solid var(--border-color)' : 'none',
                                 }}
                             >
                                 <div style={{ fontWeight: 500, color: 'var(--text-primary)' }}>
