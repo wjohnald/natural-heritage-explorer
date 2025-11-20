@@ -27,7 +27,18 @@ The map now includes a **Layer Control** in the top-right corner that allows you
    - **National Wetlands Inventory**: Shows wetlands and deepwater habitats
      - Automatically enabled by default
      - Semi-transparent (60% opacity) so you can see the base map underneath
-     - Can be toggled on/off using the checkbox
+     - Can be toggled on/off using the button
+   - **Tax Parcels**: Shows property boundaries
+     - Off by default
+     - Semi-transparent (70% opacity)
+     - Coverage: Statewide (limited availability in Adirondack Park)
+     - Can be toggled on/off using the button
+   - **DEC Wetlands**: NYS DEC Informational Freshwater Wetland Mapping
+     - Off by default
+     - Semi-transparent (50% opacity)
+     - Shows DEC-mapped informational wetlands for planning purposes
+     - **Note**: This is informational only, not regulatory
+     - Can be toggled on/off using the button
 
 ### Interactive Wetland Information
 
@@ -73,19 +84,49 @@ By overlaying the NWI data with species observations, you can:
 - **Update Frequency**: Biannually
 - **Learn More**: https://www.fws.gov/program/national-wetlands-inventory
 
+## DEC Informational Freshwater Wetlands
+
+The NYS DEC Informational Freshwater Wetland Mapping layer displays wetlands identified through the DEC's Environmental Resource Mapper (ERM). This layer is provided for **informational and planning purposes only** and is **not regulatory**.
+
+**Key Points:**
+- **Source**: NYS Department of Environmental Conservation  
+- **Purpose**: Help identify potential wetland areas for planning and conservation  
+- **Status**: Informational only - not authoritative for jurisdictional determinations  
+- **Coverage**: Statewide  
+- **When to Use**: Conservation planning, site screening, comparison with NWI data
+
+**Important**: For definitive wetland determinations, request a jurisdictional determination from the NYS DEC.
+
 ## Tips for Use
 
-1. **Click on wetlands** to see detailed information about wetland type, size, and characteristics
-2. **Toggle the NWI layer** to compare observations with and without wetlands context
-3. **Switch to Satellite view** with NWI overlay to see actual wetland conditions
-4. **Use with Vernal Pool filters** to correlate vernal pool species with seasonal wetlands
-5. **Check wetland proximity** when evaluating conservation priority species
-6. **Click near species observations** to see if they're associated with specific wetland types
+1. **Click on wetlands** (NWI only) to see detailed information about wetland type, size, and characteristics
+2. **Toggle NWI layer** to view federal wetlands inventory with clickable details
+3. **Toggle DEC Wetlands** to view state-identified informational wetlands  
+4. **Toggle Tax Parcels** to view property boundaries (limited coverage in Adirondack Park)
+5. **Switch to Satellite view** with wetland overlays to see actual ground conditions
+6. **Use with Vernal Pool filters** to correlate vernal pool species with seasonal wetlands
+7. **Check wetland proximity** when evaluating conservation priority species
+8. **Compare layers**: Use both NWI and DEC wetlands to get comprehensive context
 
 ## Technical Details
 
+### National Wetlands Inventory (NWI)
 - **Format**: WMS (Web Map Service)
-- **Projection**: Web Mercator (EPSG:3857)
-- **Opacity**: 60% for better visibility with base layers
-- **Performance**: Layers are fetched on-demand from USGS servers
+- **Source**: USFWS  
+- **Opacity**: 60%
+- **Interactive**: Clickable for feature details
+
+### DEC Informational Wetlands
+- **Format**: WMS (Web Map Service)
+- **Source**: NYS DEC Environmental Resource Mapper  
+- **Opacity**: 50%
+- **Status**: Informational only
+
+### Tax Parcels
+- **Format**: WMS (Web Map Service)
+- **Source**: NYS ITS GIS Services  
+- **Opacity**: 70%
+- **Coverage**: 36 counties
+
+All layers use Web Mercator projection (EPSG:3857) and are fetched on-demand from their respective servers.
 

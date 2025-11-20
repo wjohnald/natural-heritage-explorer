@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { MapContainer, TileLayer, WMSTileLayer, CircleMarker, Popup, Circle, useMapEvents, LayersControl, useMap } from 'react-leaflet';
 import { iNaturalistObservation, GBIFObservation, Coordinates } from '@/types';
 import L from 'leaflet';
+import * as Esri from 'esri-leaflet';
 import 'leaflet/dist/leaflet.css';
 
 interface ObservationMapProps {
@@ -26,7 +27,7 @@ function WetlandInfoHandler() {
       const size = map.getSize();
       const bounds = map.getBounds();
       const bbox = `${bounds.getSouthWest().lng},${bounds.getSouthWest().lat},${bounds.getNorthEast().lng},${bounds.getNorthEast().lat}`;
-      
+
       const url = new URL('https://fwspublicservices.wim.usgs.gov/wetlandsmapservice/services/Wetlands/MapServer/WMSServer');
       url.searchParams.set('SERVICE', 'WMS');
       url.searchParams.set('VERSION', '1.1.1');
@@ -45,23 +46,23 @@ function WetlandInfoHandler() {
       try {
         const response = await fetch(url.toString());
         const text = await response.text();
-        
+
         // Parse XML response
         const parser = new DOMParser();
         const xmlDoc = parser.parseFromString(text, 'text/xml');
-        
+
         // Check if there's a feature in the response
         const fields = xmlDoc.getElementsByTagName('FIELDS');
-        
+
         if (fields.length > 0) {
           const fieldData = fields[0];
-          
+
           // Parse wetland attributes from XML
           const wetlandType = fieldData.getAttribute('WETLAND_TYPE') || fieldData.getAttribute('wetland_type') || 'Unknown';
           const attribute = fieldData.getAttribute('ATTRIBUTE') || fieldData.getAttribute('attribute') || '';
           const acres = fieldData.getAttribute('ACRES') || fieldData.getAttribute('acres');
           const weblink = fieldData.getAttribute('WEBLINK') || fieldData.getAttribute('weblink') || '';
-          
+
           let popupContent = `
             <div style="padding: 0.5rem;">
               <h3 style="margin: 0 0 0.5rem 0; font-size: 1rem; font-weight: 600; color: var(--text-primary);">
@@ -72,7 +73,7 @@ function WetlandInfoHandler() {
                   <strong>Type:</strong> ${wetlandType}
                 </div>
           `;
-          
+
           if (attribute) {
             popupContent += `
                 <div style="margin-bottom: 0.5rem;">
@@ -80,7 +81,7 @@ function WetlandInfoHandler() {
                 </div>
             `;
           }
-          
+
           if (acres) {
             popupContent += `
                 <div style="margin-bottom: 0.5rem;">
@@ -88,7 +89,7 @@ function WetlandInfoHandler() {
                 </div>
             `;
           }
-          
+
           if (weblink) {
             popupContent += `
                 <div style="margin-top: 0.75rem;">
@@ -99,23 +100,23 @@ function WetlandInfoHandler() {
                 </div>
             `;
           }
-          
+
           popupContent += `
               </div>
             </div>
           `;
-          
+
           // Remove existing popup if any
           if (wetlandPopup) {
             map.removeLayer(wetlandPopup);
           }
-          
+
           // Create and show new popup
           const popup = L.popup()
             .setLatLng(e.latlng)
             .setContent(popupContent)
             .openOn(map);
-          
+
           setWetlandPopup(popup);
         } else {
           // No wetland feature found at this location
@@ -139,6 +140,27 @@ function WetlandInfoHandler() {
   return null;
 }
 
+// Component to handle DEC Wetlands layer using esri-leaflet
+function DECWetlandsLayer() {
+  const map = useMap();
+
+  useEffect(() => {
+    const layer = Esri.dynamicMapLayer({
+      url: 'https://gisservices.dec.ny.gov/arcgis/rest/services/erm/informational_freshwater_wetlands/MapServer',
+      opacity: 0.6,
+      f: 'image'
+    });
+
+    layer.addTo(map);
+
+    return () => {
+      map.removeLayer(layer);
+    };
+  }, [map]);
+
+  return null;
+}
+
 const MILES_TO_METERS = 1609.34;
 
 export default function ObservationMap({ observations, searchCoordinates, radius = 0.5, hoveredSpecies }: ObservationMapProps) {
@@ -146,6 +168,7 @@ export default function ObservationMap({ observations, searchCoordinates, radius
   const [selectedBasemap, setSelectedBasemap] = useState<BasemapType>('topo');
   const [showNWI, setShowNWI] = useState(true);
   const [showParcels, setShowParcels] = useState(false);
+  const [showInfoWetlands, setShowInfoWetlands] = useState(false);
 
   // Prevent hydration errors by only rendering map on client side
   useEffect(() => {
@@ -229,7 +252,7 @@ export default function ObservationMap({ observations, searchCoordinates, radius
           scrollWheelZoom={true}
         >
           <WetlandInfoHandler />
-          
+
           {/* Render selected basemap */}
           {selectedBasemap === 'topo' && (
             <TileLayer
@@ -290,6 +313,11 @@ export default function ObservationMap({ observations, searchCoordinates, radius
               maxZoom={22}
               maxNativeZoom={19}
             />
+          )}
+
+          {/* Conditionally render DEC Informational Wetlands Layer */}
+          {showInfoWetlands && (
+            <DECWetlandsLayer />
           )}
 
           {/* Search center marker */}
@@ -692,6 +720,37 @@ export default function ObservationMap({ observations, searchCoordinates, radius
               }}
             >
               {showParcels ? '✓' : '○'} Tax Parcels
+            </button>
+            <button
+              onClick={() => setShowInfoWetlands(!showInfoWetlands)}
+              style={{
+                padding: '0.375rem 0.75rem',
+                background: showInfoWetlands ? '#10b981' : 'white',
+                color: showInfoWetlands ? 'white' : '#374151',
+                border: '1.5px solid',
+                borderColor: showInfoWetlands ? '#10b981' : '#d1d5db',
+                borderRadius: '0.375rem',
+                fontSize: '0.8125rem',
+                cursor: 'pointer',
+                fontWeight: 600,
+                transition: 'all 0.2s',
+                boxShadow: showInfoWetlands ? '0 1px 3px rgba(16, 185, 129, 0.3)' : 'none',
+                whiteSpace: 'nowrap',
+              }}
+              onMouseEnter={(e) => {
+                if (!showInfoWetlands) {
+                  e.currentTarget.style.borderColor = '#9ca3af';
+                  e.currentTarget.style.background = '#f9fafb';
+                }
+              }}
+              onMouseLeave={(e) => {
+                if (!showInfoWetlands) {
+                  e.currentTarget.style.borderColor = '#d1d5db';
+                  e.currentTarget.style.background = 'white';
+                }
+              }}
+            >
+              {showInfoWetlands ? '✓' : '○'} DEC Wetlands
             </button>
           </div>
         </div>
