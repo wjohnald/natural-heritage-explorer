@@ -10,36 +10,51 @@ interface GBIFSpeciesListWrapperProps {
 
 export default function GBIFSpeciesListWrapper({ groups, children }: GBIFSpeciesListWrapperProps) {
     const [isExpanded, setIsExpanded] = useState(false);
+    const [hoveredStatus, setHoveredStatus] = useState<string | null>(null);
+    const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
 
     // Calculate statistics
     const uniqueSpeciesCount = groups.length;
     
-    // Count unique species by conservation status
-    const statusCounts = {
-        endangered: 0,
-        threatened: 0,
-        specialConcern: 0,
-        sgcn: 0,
+    // Group species by conservation status
+    const statusGroups = {
+        endangered: groups.filter(g => g.observations[0]?.stateProtection === 'Endangered'),
+        threatened: groups.filter(g => g.observations[0]?.stateProtection === 'Threatened'),
+        specialConcern: groups.filter(g => g.observations[0]?.stateProtection === 'Special Concern'),
+        sgcn: groups.filter(g => !g.observations[0]?.stateProtection && g.observations[0]?.conservationNeed),
     };
 
-    groups.forEach(group => {
-        const obs = group.observations[0];
-        if (obs.stateProtection === 'Endangered') {
-            statusCounts.endangered++;
-        } else if (obs.stateProtection === 'Threatened') {
-            statusCounts.threatened++;
-        } else if (obs.stateProtection === 'Special Concern') {
-            statusCounts.specialConcern++;
-        } else if (obs.conservationNeed) {
-            statusCounts.sgcn++;
-        }
-    });
+    const statusCounts = {
+        endangered: statusGroups.endangered.length,
+        threatened: statusGroups.threatened.length,
+        specialConcern: statusGroups.specialConcern.length,
+        sgcn: statusGroups.sgcn.length,
+    };
 
     const hasConservationStatus = 
         statusCounts.endangered > 0 || 
         statusCounts.threatened > 0 || 
         statusCounts.specialConcern > 0 || 
         statusCounts.sgcn > 0;
+
+    const handleStatusHover = (status: string, event: React.MouseEvent) => {
+        setHoveredStatus(status);
+        setMousePosition({ x: event.clientX, y: event.clientY });
+    };
+
+    const handleStatusLeave = () => {
+        setHoveredStatus(null);
+    };
+
+    const getSpeciesForStatus = (status: string): GBIFGroupedObservation[] => {
+        switch (status) {
+            case 'endangered': return statusGroups.endangered;
+            case 'threatened': return statusGroups.threatened;
+            case 'specialConcern': return statusGroups.specialConcern;
+            case 'sgcn': return statusGroups.sgcn;
+            default: return [];
+        }
+    };
 
     return (
         <div style={{
@@ -108,7 +123,21 @@ export default function GBIFSpeciesListWrapper({ groups, children }: GBIFSpecies
                         }}>
                             <span style={{ fontWeight: 500 }}>Conservation Status:</span>
                             {statusCounts.endangered > 0 && (
-                                <div style={{ display: 'flex', alignItems: 'center', gap: '0.375rem' }}>
+                                <div 
+                                    style={{ 
+                                        display: 'flex', 
+                                        alignItems: 'center', 
+                                        gap: '0.375rem',
+                                        cursor: 'pointer',
+                                        padding: '0.25rem 0.5rem',
+                                        borderRadius: '0.375rem',
+                                        transition: 'background-color 0.2s',
+                                    }}
+                                    onMouseEnter={(e) => handleStatusHover('endangered', e)}
+                                    onMouseMove={(e) => setMousePosition({ x: e.clientX, y: e.clientY })}
+                                    onMouseLeave={handleStatusLeave}
+                                    onClickCapture={(e) => e.stopPropagation()}
+                                >
                                     <div style={{
                                         width: '0.5rem',
                                         height: '0.5rem',
@@ -119,7 +148,21 @@ export default function GBIFSpeciesListWrapper({ groups, children }: GBIFSpecies
                                 </div>
                             )}
                             {statusCounts.threatened > 0 && (
-                                <div style={{ display: 'flex', alignItems: 'center', gap: '0.375rem' }}>
+                                <div 
+                                    style={{ 
+                                        display: 'flex', 
+                                        alignItems: 'center', 
+                                        gap: '0.375rem',
+                                        cursor: 'pointer',
+                                        padding: '0.25rem 0.5rem',
+                                        borderRadius: '0.375rem',
+                                        transition: 'background-color 0.2s',
+                                    }}
+                                    onMouseEnter={(e) => handleStatusHover('threatened', e)}
+                                    onMouseMove={(e) => setMousePosition({ x: e.clientX, y: e.clientY })}
+                                    onMouseLeave={handleStatusLeave}
+                                    onClickCapture={(e) => e.stopPropagation()}
+                                >
                                     <div style={{
                                         width: '0.5rem',
                                         height: '0.5rem',
@@ -130,7 +173,21 @@ export default function GBIFSpeciesListWrapper({ groups, children }: GBIFSpecies
                                 </div>
                             )}
                             {statusCounts.specialConcern > 0 && (
-                                <div style={{ display: 'flex', alignItems: 'center', gap: '0.375rem' }}>
+                                <div 
+                                    style={{ 
+                                        display: 'flex', 
+                                        alignItems: 'center', 
+                                        gap: '0.375rem',
+                                        cursor: 'pointer',
+                                        padding: '0.25rem 0.5rem',
+                                        borderRadius: '0.375rem',
+                                        transition: 'background-color 0.2s',
+                                    }}
+                                    onMouseEnter={(e) => handleStatusHover('specialConcern', e)}
+                                    onMouseMove={(e) => setMousePosition({ x: e.clientX, y: e.clientY })}
+                                    onMouseLeave={handleStatusLeave}
+                                    onClickCapture={(e) => e.stopPropagation()}
+                                >
                                     <div style={{
                                         width: '0.5rem',
                                         height: '0.5rem',
@@ -141,7 +198,21 @@ export default function GBIFSpeciesListWrapper({ groups, children }: GBIFSpecies
                                 </div>
                             )}
                             {statusCounts.sgcn > 0 && (
-                                <div style={{ display: 'flex', alignItems: 'center', gap: '0.375rem' }}>
+                                <div 
+                                    style={{ 
+                                        display: 'flex', 
+                                        alignItems: 'center', 
+                                        gap: '0.375rem',
+                                        cursor: 'pointer',
+                                        padding: '0.25rem 0.5rem',
+                                        borderRadius: '0.375rem',
+                                        transition: 'background-color 0.2s',
+                                    }}
+                                    onMouseEnter={(e) => handleStatusHover('sgcn', e)}
+                                    onMouseMove={(e) => setMousePosition({ x: e.clientX, y: e.clientY })}
+                                    onMouseLeave={handleStatusLeave}
+                                    onClickCapture={(e) => e.stopPropagation()}
+                                >
                                     <div style={{
                                         width: '0.5rem',
                                         height: '0.5rem',
@@ -188,6 +259,60 @@ export default function GBIFSpeciesListWrapper({ groups, children }: GBIFSpecies
                     borderTop: '1px solid var(--border-color)',
                 }}>
                     {children}
+                </div>
+            )}
+
+            {/* Hover Modal */}
+            {hoveredStatus && (
+                <div
+                    style={{
+                        position: 'fixed',
+                        left: `${mousePosition.x + 10}px`,
+                        top: `${mousePosition.y + 10}px`,
+                        backgroundColor: 'var(--bg-primary)',
+                        border: '2px solid var(--border-color)',
+                        borderRadius: '0.5rem',
+                        padding: '0.75rem',
+                        boxShadow: '0 10px 25px rgba(0, 0, 0, 0.2)',
+                        zIndex: 1000,
+                        maxWidth: '300px',
+                        maxHeight: '400px',
+                        overflowY: 'auto',
+                        pointerEvents: 'none',
+                    }}
+                >
+                    <div style={{ 
+                        fontSize: '0.875rem', 
+                        fontWeight: 600, 
+                        marginBottom: '0.5rem',
+                        color: 'var(--text-primary)',
+                    }}>
+                        {hoveredStatus === 'endangered' && 'Endangered Species'}
+                        {hoveredStatus === 'threatened' && 'Threatened Species'}
+                        {hoveredStatus === 'specialConcern' && 'Special Concern Species'}
+                        {hoveredStatus === 'sgcn' && 'Species of Greatest Conservation Need'}
+                    </div>
+                    <div style={{ 
+                        fontSize: '0.75rem',
+                        color: 'var(--text-secondary)',
+                    }}>
+                        {getSpeciesForStatus(hoveredStatus).map((group, index) => (
+                            <div 
+                                key={group.scientificName}
+                                style={{ 
+                                    padding: '0.25rem 0',
+                                    borderBottom: index < getSpeciesForStatus(hoveredStatus).length - 1 ? '1px solid var(--border-color)' : 'none',
+                                }}
+                            >
+                                <div style={{ fontWeight: 500, color: 'var(--text-primary)' }}>
+                                    {group.commonName}
+                                </div>
+                                <div style={{ fontStyle: 'italic', fontSize: '0.7rem' }}>
+                                    {group.scientificName}
+                                </div>
+                            </div>
+                        ))}
+                    </div>
                 </div>
             )}
         </div>
