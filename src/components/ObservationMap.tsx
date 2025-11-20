@@ -340,32 +340,29 @@ function ParcelScoreHandler({ enabled }: { enabled: boolean }) {
           map.removeLayer(parcelPopup);
         }
 
-        // Create popup immediately
+        // Create popup immediately with loading state
         const popup = L.popup({ maxWidth: 450 })
           .setLatLng(e.latlng)
-          .setContent('<div style="padding: 0.5rem;">⏳ Initializing...</div>')
+          .setContent(`
+            <div style="padding: 0.5rem; max-width: 400px;">
+              <h3 style="margin: 0 0 0.5rem 0; font-size: 1rem; font-weight: 600; color: var(--text-primary);">
+                🏞️ Conservation Priority Score
+              </h3>
+              <div style="font-size: 0.875rem; color: var(--text-primary); text-align: center; padding: 2rem;">
+                <div style="font-size: 2rem; margin-bottom: 0.5rem;">⏳</div>
+                <div>Loading parcel information...</div>
+              </div>
+            </div>
+          `)
           .openOn(map);
 
         setParcelPopup(popup);
 
-        // Fetch parcel info first
+        // Fetch parcel info
         const geocodeUrl = `https://nominatim.openstreetmap.org/reverse?format=json&lat=${e.latlng.lat}&lon=${e.latlng.lng}`;
         const geocodeResponse = await fetch(geocodeUrl);
         const geocodeData = await geocodeResponse.json();
         const address = geocodeData.display_name;
-
-        // Show initial popup with parcel lookup status
-        popup.setContent(`
-          <div style="padding: 0.5rem; max-width: 450px;">
-            <h3 style="margin: 0 0 0.5rem 0; font-size: 1rem; font-weight: 600; color: var(--text-primary);">
-              🏞️ Conservation Priority Score
-            </h3>
-            <div style="font-size: 0.875rem; text-align: center; padding: 1rem;">
-              <div style="font-size: 1.5rem; margin-bottom: 0.5rem;">🔍</div>
-              <div>Looking up parcel...</div>
-            </div>
-          </div>
-        `);
 
         // Call parcel scoring API
         const scoreResponse = await fetch(
@@ -389,141 +386,124 @@ function ParcelScoreHandler({ enabled }: { enabled: boolean }) {
           return;
         }
 
-        // Build initial popup with all criteria in loading state
-        const buildPopupContent = (completedIndices: Set<number>, currentScore: number) => {
-          const scorePercent = scoreData.maxPossibleScore > 0
-            ? Math.round((currentScore / scoreData.maxPossibleScore) * 100)
-            : 0;
-          const scoreColor = scorePercent > 50 ? '#10b981' : scorePercent > 25 ? '#f59e0b' : '#ef4444';
+        // Build full popup content
+        const scorePercent = scoreData.maxPossibleScore > 0
+          ? Math.round((scoreData.totalScore / scoreData.maxPossibleScore) * 100)
+          : 0;
+        const scoreColor = scorePercent > 50 ? '#10b981' : scorePercent > 25 ? '#f59e0b' : '#ef4444';
 
-          let content = `
-            <div style="padding: 0.5rem; max-width: 450px;">
-              <h3 style="margin: 0 0 0.5rem 0; font-size: 1rem; font-weight: 600; color: var(--text-primary);">
-                🏞️ Conservation Priority Score
-              </h3>
-              <div style="font-size: 0.875rem; color: var(--text-primary);">
-          `;
+        let content = `
+          <div style="padding: 0.5rem; max-width: 450px;">
+            <h3 style="margin: 0 0 0.5rem 0; font-size: 1rem; font-weight: 600; color: var(--text-primary);">
+              🏞️ Conservation Priority Score
+            </h3>
+            <div style="font-size: 0.875rem; color: var(--text-primary);">
+        `;
 
-          // Parcel info
-          if (scoreData.parcelInfo) {
-            content += `
-              <div style="margin-bottom: 0.75rem; padding: 0.5rem; background: var(--bg-tertiary); border-radius: 0.375rem; font-size: 0.8125rem;">
-                <div style="margin-bottom: 0.25rem;"><strong>Address:</strong> ${scoreData.parcelInfo.address || 'N/A'}</div>
-                <div style="margin-bottom: 0.25rem;"><strong>Municipality:</strong> ${scoreData.parcelInfo.municipality || 'N/A'}, ${scoreData.parcelInfo.county || 'N/A'}</div>
-                <div style="margin-bottom: 0.25rem;"><strong>Parcel ID:</strong> ${scoreData.parcelInfo.printKey || 'N/A'}</div>
-                <div><strong>Size:</strong> ${scoreData.parcelInfo.acres ? parseFloat(scoreData.parcelInfo.acres).toFixed(2) : 'N/A'} acres</div>
-              </div>
-            `;
-          }
-
-          // Score display (animated)
+        // Parcel info
+        if (scoreData.parcelInfo) {
           content += `
-            <div style="margin-bottom: 0.75rem;">
-              <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
-                <span style="font-weight: 600;">Total Score:</span>
-                <span style="font-size: 1.25rem; font-weight: 700; color: ${scoreColor}; transition: all 0.3s;">
-                  ${currentScore.toFixed(1)} / ${scoreData.maxPossibleScore}
-                </span>
-              </div>
-              <div style="width: 100%; height: 8px; background: #e5e7eb; border-radius: 4px; overflow: hidden;">
-                <div style="width: ${scorePercent}%; height: 100%; background: ${scoreColor}; transition: width 0.5s ease-out;"></div>
-              </div>
-              <div style="text-align: right; font-size: 0.75rem; color: var(--text-secondary); margin-top: 0.25rem;">
-                ${completedIndices.size} / ${scoreData.criteriaSummary.length} criteria evaluated
-              </div>
+            <div style="margin-bottom: 0.75rem; padding: 0.5rem; background: var(--bg-tertiary); border-radius: 0.375rem; font-size: 0.8125rem;">
+              <div style="margin-bottom: 0.25rem;"><strong>Address:</strong> ${scoreData.parcelInfo.address || 'N/A'}</div>
+              <div style="margin-bottom: 0.25rem;"><strong>Municipality:</strong> ${scoreData.parcelInfo.municipality || 'N/A'}, ${scoreData.parcelInfo.county || 'N/A'}</div>
+              <div style="margin-bottom: 0.25rem;"><strong>Parcel ID:</strong> ${scoreData.parcelInfo.printKey || 'N/A'}</div>
+              <div><strong>Size:</strong> ${scoreData.parcelInfo.acres ? parseFloat(scoreData.parcelInfo.acres).toFixed(2) : 'N/A'} acres</div>
             </div>
           `;
+        }
 
-          // Progressive criteria list grouped by category
-          const byCategory: Record<string, any[]> = {};
-          scoreData.criteriaSummary.forEach((c: any, idx: number) => {
-            if (!byCategory[c.category]) byCategory[c.category] = [];
-            byCategory[c.category].push({ ...c, index: idx });
-          });
+        // Score display
+        content += `
+          <div style="margin-bottom: 0.75rem;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
+              <span style="font-weight: 600;">Total Score:</span>
+              <span style="font-size: 1.25rem; font-weight: 700; color: ${scoreColor};">
+                ${scoreData.totalScore} / ${scoreData.maxPossibleScore}
+              </span>
+            </div>
+            <div style="width: 100%; height: 8px; background: #e5e7eb; border-radius: 4px; overflow: hidden;">
+              <div style="width: ${scorePercent}%; height: 100%; background: ${scoreColor}; transition: width 0.3s;"></div>
+            </div>
+            <div style="text-align: right; font-size: 0.75rem; color: var(--text-secondary); margin-top: 0.25rem;">
+              ${scorePercent}% of maximum possible score
+            </div>
+          </div>
+        `;
 
+        // Criteria matched list
+        if (scoreData.criteriaMatched && scoreData.criteriaMatched.length > 0) {
           content += `
-            <details open style="margin-top: 0.5rem; border-top: 1px solid var(--border-color); padding-top: 0.5rem;">
-              <summary style="cursor: pointer; font-weight: 600; font-size: 0.8125rem; color: var(--text-secondary); user-select: none; margin-bottom: 0.5rem;">
-                📊 Criteria Details
+            <div style="margin-bottom: 0.75rem;">
+              <div style="font-weight: 600; margin-bottom: 0.25rem;">✓ Criteria Matched (${scoreData.criteriaMatched.length}):</div>
+              <ul style="margin: 0; padding-left: 1.25rem; font-size: 0.8125rem;">
+                ${scoreData.criteriaMatched.map((c: string) => `<li>${c}</li>`).join('')}
+              </ul>
+            </div>
+          `;
+        } else {
+          content += `
+            <div style="margin-bottom: 0.75rem; padding: 0.5rem; background: #fee; border-left: 3px solid ${scoreColor}; font-size: 0.8125rem;">
+              This parcel does not meet any of the implemented conservation criteria.
+            </div>
+          `;
+        }
+
+        // Detailed summary
+        if (scoreData.criteriaSummary && scoreData.criteriaSummary.length > 0) {
+          content += `
+            <details style="margin-top: 0.75rem; border-top: 1px solid var(--border-color); padding-top: 0.75rem;">
+              <summary style="cursor: pointer; font-weight: 600; font-size: 0.8125rem; color: var(--text-secondary); user-select: none;">
+                📊 Detailed Criteria Summary (${scoreData.criteriaSummary.length} total)
               </summary>
-              <div style="max-height: 350px; overflow-y: auto; font-size: 0.75rem;">
+              <div style="margin-top: 0.5rem; max-height: 300px; overflow-y: auto;">
           `;
 
+          // Group by category
+          const byCategory: Record<string, any[]> = {};
+          scoreData.criteriaSummary.forEach((c: any) => {
+            if (!byCategory[c.category]) byCategory[c.category] = [];
+            byCategory[c.category].push(c);
+          });
+
           Object.entries(byCategory).forEach(([category, criteria]) => {
-            const categoryCompleted = criteria.filter((c: any) => completedIndices.has(c.index));
-            const categoryScore = categoryCompleted.reduce((sum, c) => sum + c.earnedScore, 0);
+            const categoryScore = criteria.reduce((sum, c) => sum + c.earnedScore, 0);
             const categoryMax = criteria.reduce((sum, c) => sum + c.maxScore, 0);
 
             content += `
               <div style="margin-bottom: 0.75rem;">
                 <div style="font-weight: 600; font-size: 0.8125rem; margin-bottom: 0.25rem; color: var(--text-primary);">
-                  ${category} (${categoryScore.toFixed(1)}/${categoryMax} pts)
+                  ${category} (${categoryScore}/${categoryMax} pts)
                 </div>
+                <div style="font-size: 0.75rem;">
             `;
 
             criteria.forEach((c: any) => {
-              const isCompleted = completedIndices.has(c.index);
-              let icon, color, label;
-
-              if (!isCompleted) {
-                icon = '⏳';
-                color = '#9ca3af';
-                label = ' (evaluating...)';
-              } else if (c.matched) {
-                icon = '✅';
-                color = '#10b981';
-                label = '';
-              } else if (c.implemented) {
-                icon = '○';
-                color = '#6b7280';
-                label = '';
-              } else {
-                icon = '⊘';
-                color = '#d1d5db';
-                label = ' (not implemented)';
-              }
+              const icon = c.matched ? '✓' : c.implemented ? '○' : '⊘';
+              const color = c.matched ? '#10b981' : c.implemented ? '#6b7280' : '#d1d5db';
+              const label = c.implemented ? '' : ' (not implemented)';
 
               content += `
-                <div style="display: flex; justify-content: space-between; padding: 0.125rem 0; color: ${color}; transition: all 0.3s;">
+                <div style="display: flex; justify-content: space-between; padding: 0.125rem 0; color: ${color};">
                   <span>${icon} ${c.name}${label}</span>
-                  <span style="font-weight: 500;">${isCompleted ? `${c.earnedScore}/${c.maxScore}` : '-'}</span>
+                  <span>${c.earnedScore}/${c.maxScore}</span>
                 </div>
               `;
             });
 
-            content += `</div>`;
+            content += `
+                </div>
+              </div>
+            `;
           });
 
           content += `
               </div>
             </details>
           `;
-
-          content += `</div></div>`;
-          return content;
-        };
-
-        // Show initial state with all criteria loading
-        popup.setContent(buildPopupContent(new Set(), 0));
-
-        // Progressively reveal results with animation
-        const totalCriteria = scoreData.criteriaSummary.length;
-        const completedIndices = new Set<number>();
-        let currentScore = 0;
-
-        // Reveal criteria progressively
-        for (let i = 0; i < totalCriteria; i++) {
-          await new Promise(resolve => setTimeout(resolve, 50)); // Small delay between each
-
-          completedIndices.add(i);
-          const criterion = scoreData.criteriaSummary[i];
-          currentScore += criterion.earnedScore;
-
-          // Update popup
-          if (map.hasLayer(popup)) {
-            popup.setContent(buildPopupContent(completedIndices, currentScore));
-          }
         }
+
+        content += `</div></div>`;
+        popup.setContent(content);
 
       } catch (error) {
         console.error('Error getting parcel score:', error);
