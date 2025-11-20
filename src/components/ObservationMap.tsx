@@ -145,6 +145,7 @@ export default function ObservationMap({ observations, searchCoordinates, radius
   const [isMounted, setIsMounted] = useState(false);
   const [selectedBasemap, setSelectedBasemap] = useState<BasemapType>('topo');
   const [showNWI, setShowNWI] = useState(true);
+  const [showParcels, setShowParcels] = useState(false);
 
   // Prevent hydration errors by only rendering map on client side
   useEffect(() => {
@@ -270,6 +271,22 @@ export default function ObservationMap({ observations, searchCoordinates, radius
               version="1.1.1"
               attribution='<a href="https://www.fws.gov/program/national-wetlands-inventory" target="_blank">USFWS National Wetlands Inventory</a>'
               opacity={0.6}
+              maxZoom={22}
+              maxNativeZoom={19}
+            />
+          )}
+
+          {/* Conditionally render Tax Parcel Layer */}
+          {showParcels && (
+            <WMSTileLayer
+              key={`parcels-${selectedBasemap}`}
+              url="https://gisservices.its.ny.gov/arcgis/services/NYS_Tax_Parcels_Public/MapServer/WMSServer"
+              layers="0"
+              format="image/png"
+              transparent={true}
+              version="1.3.0"
+              attribution='<a href="https://gis.ny.gov/" target="_blank">NYS Tax Parcels</a>'
+              opacity={0.7}
               maxZoom={22}
               maxNativeZoom={19}
             />
@@ -603,7 +620,7 @@ export default function ObservationMap({ observations, searchCoordinates, radius
             background: 'var(--border-color)',
           }} />
 
-          {/* NWI Layer Toggle */}
+          {/* Layer Overlays Toggle */}
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
             <span style={{
               fontSize: '0.8125rem',
@@ -612,7 +629,7 @@ export default function ObservationMap({ observations, searchCoordinates, radius
               textTransform: 'uppercase',
               letterSpacing: '0.025em',
             }}>
-              Overlay:
+              Overlays:
             </span>
             <button
               onClick={() => setShowNWI(!showNWI)}
@@ -644,6 +661,37 @@ export default function ObservationMap({ observations, searchCoordinates, radius
               }}
             >
               {showNWI ? '✓' : '○'} Wetlands
+            </button>
+            <button
+              onClick={() => setShowParcels(!showParcels)}
+              style={{
+                padding: '0.375rem 0.75rem',
+                background: showParcels ? '#10b981' : 'white',
+                color: showParcels ? 'white' : '#374151',
+                border: '1.5px solid',
+                borderColor: showParcels ? '#10b981' : '#d1d5db',
+                borderRadius: '0.375rem',
+                fontSize: '0.8125rem',
+                cursor: 'pointer',
+                fontWeight: 600,
+                transition: 'all 0.2s',
+                boxShadow: showParcels ? '0 1px 3px rgba(16, 185, 129, 0.3)' : 'none',
+                whiteSpace: 'nowrap',
+              }}
+              onMouseEnter={(e) => {
+                if (!showParcels) {
+                  e.currentTarget.style.borderColor = '#9ca3af';
+                  e.currentTarget.style.background = '#f9fafb';
+                }
+              }}
+              onMouseLeave={(e) => {
+                if (!showParcels) {
+                  e.currentTarget.style.borderColor = '#d1d5db';
+                  e.currentTarget.style.background = 'white';
+                }
+              }}
+            >
+              {showParcels ? '✓' : '○'} Tax Parcels
             </button>
           </div>
         </div>
