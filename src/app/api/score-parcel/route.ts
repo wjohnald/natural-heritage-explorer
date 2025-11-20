@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { geocodeAddress } from '@/services/server-geocoding';
 
 // Scoring criteria with service URLs
 const SCORING_CRITERIA = [
@@ -122,21 +123,19 @@ async function queryFeatureService(
     }
 }
 
+
+
 // Get parcel geometry from NYS Tax Parcels service
 async function getParcelGeometry(address: string): Promise<any> {
     try {
         // First geocode the address to get coordinates
-        const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000';
-        const geocodeResponse = await fetch(
-            `${baseUrl}/api/geocode?address=${encodeURIComponent(address)}`
-        );
-        const geocodeData = await geocodeResponse.json();
+        const geocodeResult = await geocodeAddress(address);
 
-        if (!geocodeData.coordinates || !geocodeData.coordinates.lat || !geocodeData.coordinates.lon) {
+        if (!geocodeResult.coordinates || !geocodeResult.coordinates.lat || !geocodeResult.coordinates.lon) {
             throw new Error('Failed to geocode address');
         }
 
-        const { lat, lon } = geocodeData.coordinates;
+        const { lat, lon } = geocodeResult.coordinates;
 
         // Query NYS Tax Parcels to find parcel containing this point
         // Using ShareGIS NYS Tax Parcels Public service (correct URL)
