@@ -8,7 +8,38 @@ The vernal pool species list was compiled from official New York State governmen
 
 ---
 
-## Primary Sources
+## Primary Authoritative Sources
+
+### 1. New York State Department of Environmental Conservation (NYS DEC)
+**Authority**: State Regulatory Agency  
+**Key Determination**: Identifies "obligate" indicator species for vernal pool regulation under the Freshwater Wetlands Act.
+
+**Obligate Species Listed**:
+- **Wood Frog** (*Lithobates sylvaticus*)
+- **Fairy Shrimp** (*Eubranchipus spp.*)
+- **Spotted Salamander** (*Ambystoma maculatum*)
+- **Jefferson Salamander** (*Ambystoma jeffersonianum*)
+- **Blue-spotted Salamander** (*Ambystoma laterale*)
+- **Marbled Salamander** (*Ambystoma opacum*)
+- **Eastern Tiger Salamander** (*Ambystoma tigrinum*)
+
+**Citation**:
+> New York State Department of Environmental Conservation. (n.d.). "Woodland Pool." NYS DEC Nature & Wildlife. Retrieved from https://dec.ny.gov/nature/waterbodies/wetlands/freshwater-wetlands-program
+
+### 2. New York Natural Heritage Program (NYNHP)
+**Authority**: State Scientific Program  
+**Key Determination**: Defines ecological community standards and indicator species.
+
+**Key Indicators**:
+- Confirms **Wood Frogs** and **Fairy Shrimp** as "vernal pool obligates" that cannot complete their life cycle without these habitats.
+- Lists **Mole Salamanders** (Ambystoma spp.) as primary indicators.
+
+**Citation**:
+> New York Natural Heritage Program. (2025). "Vernal Pool Ecological Community." NYNHP Conservation Guides.
+
+---
+
+## Secondary Sources (Brochures & Municipal)
 
 ### 1. New York Forest Owners Association (NYFOA)
 **Document**: "Vernal Pool Brochure"  
