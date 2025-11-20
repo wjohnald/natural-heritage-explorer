@@ -1,8 +1,10 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { GroupedObservation, Coordinates, iNaturalistObservation } from '@/types';
 import ObservationCard from './ObservationCard';
+import { calculateDistance } from '@/utils/distance';
+import { formatObservationDate } from '@/utils/dateFormat';
 
 interface ObservationGroupRowProps {
     group: GroupedObservation;
@@ -19,6 +21,58 @@ export default function ObservationGroupRow({ group, searchCoordinates, radius =
     const [observations, setObservations] = useState<iNaturalistObservation[]>([]);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
+
+    // Calculate stats from loaded observations
+    const observationStats = useMemo(() => {
+        if (observations.length === 0 || !searchCoordinates) {
+            return { closestDistance: null, mostRecentDate: null };
+        }
+
+        let closestDistance = Infinity;
+        let mostRecentDate = '';
+
+        observations.forEach((obs) => {
+            // Calculate distance
+            let lat: number | undefined = obs.latitude;
+            let lon: number | undefined = obs.longitude;
+
+            if (!lat || !lon) {
+                if (obs.geojson?.coordinates) {
+                    lon = obs.geojson.coordinates[0];
+                    lat = obs.geojson.coordinates[1];
+                } else if (obs.location) {
+                    const parts = obs.location.split(',');
+                    if (parts.length === 2) {
+                        lat = parseFloat(parts[0]);
+                        lon = parseFloat(parts[1]);
+                    }
+                }
+            }
+
+            if (lat !== undefined && lon !== undefined) {
+                const distance = calculateDistance(
+                    searchCoordinates.lat,
+                    searchCoordinates.lon,
+                    lat,
+                    lon
+                );
+                if (distance < closestDistance) {
+                    closestDistance = distance;
+                }
+            }
+
+            // Track most recent date
+            const dateStr = formatObservationDate(obs);
+            if (dateStr && (!mostRecentDate || dateStr > mostRecentDate)) {
+                mostRecentDate = dateStr;
+            }
+        });
+
+        return {
+            closestDistance: closestDistance !== Infinity ? closestDistance : null,
+            mostRecentDate: mostRecentDate || null
+        };
+    }, [observations, searchCoordinates]);
 
     const handleToggle = async () => {
         const willExpand = !isExpanded;
@@ -127,18 +181,6 @@ export default function ObservationGroupRow({ group, searchCoordinates, radius =
                         <span className="stat-value">{group.totalCount}</span>
                     </div>
                     <div className="stat-item">
-                        <span className="stat-label">Closest</span>
-                        <span className="stat-value">
-                            {group.closestDistance !== Infinity
-                                ? `${group.closestDistance.toFixed(1)} mi`
-                                : 'N/A'}
-                        </span>
-                    </div>
-                    <div className="stat-item">
-                        <span className="stat-label">Latest</span>
-                        <span className="stat-value">{group.mostRecentDate || 'N/A'}</span>
-                    </div>
-                    <div className="stat-item">
                         <svg
                             style={{
                                 width: '1.25rem',
@@ -189,19 +231,52 @@ export default function ObservationGroupRow({ group, searchCoordinates, radius =
                         </div>
                     )}
                     {!loading && !error && observations.length > 0 && (
-                        <div style={{
-                            display: 'grid',
-                            gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))',
-                            gap: '1rem',
-                        }}>
-                            {observations.map((obs) => (
-                                <ObservationCard
-                                    key={obs.id}
-                                    observation={obs}
-                                    searchCoordinates={searchCoordinates}
-                                />
-                            ))}
-                        </div>
+                        <>
+                            {/* Stats summary */}
+                            <div style={{
+                                display: 'flex',
+                                gap: '2rem',
+                                marginBottom: '1rem',
+                                padding: '0.75rem 1rem',
+                                backgroundColor: 'var(--bg-tertiary)',
+                                borderRadius: '0.5rem',
+                                fontSize: '0.875rem',
+                            }}>
+                                <div>
+                                    <span style={{ color: 'var(--text-secondary)', marginRight: '0.5rem' }}>
+                                        Closest:
+                                    </span>
+                                    <span style={{ color: 'var(--text-primary)', fontWeight: '500' }}>
+                                        {observationStats.closestDistance !== null
+                                            ? `${observationStats.closestDistance.toFixed(1)} mi`
+                                            : 'N/A'}
+                                    </span>
+                                </div>
+                                <div>
+                                    <span style={{ color: 'var(--text-secondary)', marginRight: '0.5rem' }}>
+                                        Latest:
+                                    </span>
+                                    <span style={{ color: 'var(--text-primary)', fontWeight: '500' }}>
+                                        {observationStats.mostRecentDate || 'N/A'}
+                                    </span>
+                                </div>
+                            </div>
+                            
+                            {/* Observation cards grid */}
+                            <div style={{
+                                display: 'grid',
+                                gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))',
+                                gap: '1rem',
+                            }}>
+                                {observations.map((obs) => (
+                                    <ObservationCard
+                                        key={obs.id}
+                                        observation={obs}
+                                        searchCoordinates={searchCoordinates}
+                                    />
+                                ))}
+                            </div>
+                        </>
                     )}
                     {!loading && !error && observations.length === 0 && (
                         <div style={{ textAlign: 'center', padding: '2rem', color: 'var(--text-secondary)' }}>

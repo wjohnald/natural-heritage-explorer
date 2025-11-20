@@ -1,8 +1,10 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { GBIFGroupedObservation, Coordinates, GBIFObservation } from '@/types';
 import GBIFObservationCard from './GBIFObservationCard';
+import { calculateDistance } from '@/utils/distance';
+import { formatGBIFDate } from '@/services/gbif';
 
 interface GBIFObservationGroupRowProps {
     group: GBIFGroupedObservation;
@@ -19,6 +21,42 @@ export default function GBIFObservationGroupRow({ group, searchCoordinates, radi
     const [observations, setObservations] = useState<GBIFObservation[]>([]);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
+
+    // Calculate stats from loaded observations
+    const observationStats = useMemo(() => {
+        if (observations.length === 0 || !searchCoordinates) {
+            return { closestDistance: null, mostRecentDate: null };
+        }
+
+        let closestDistance = Infinity;
+        let mostRecentDate = '';
+
+        observations.forEach((obs) => {
+            // Calculate distance
+            if (obs.decimalLatitude && obs.decimalLongitude) {
+                const distance = calculateDistance(
+                    searchCoordinates.lat,
+                    searchCoordinates.lon,
+                    obs.decimalLatitude,
+                    obs.decimalLongitude
+                );
+                if (distance < closestDistance) {
+                    closestDistance = distance;
+                }
+            }
+
+            // Track most recent date
+            const dateStr = formatGBIFDate(obs);
+            if (dateStr && dateStr !== 'Unknown' && (!mostRecentDate || dateStr > mostRecentDate)) {
+                mostRecentDate = dateStr;
+            }
+        });
+
+        return {
+            closestDistance: closestDistance !== Infinity ? closestDistance : null,
+            mostRecentDate: mostRecentDate || null
+        };
+    }, [observations, searchCoordinates]);
 
     const handleToggle = async () => {
         const willExpand = !isExpanded;
@@ -127,18 +165,6 @@ export default function GBIFObservationGroupRow({ group, searchCoordinates, radi
                         <span className="stat-value">{group.totalCount}</span>
                     </div>
                     <div className="stat-item">
-                        <span className="stat-label">Closest</span>
-                        <span className="stat-value">
-                            {group.closestDistance !== Infinity
-                                ? `${group.closestDistance.toFixed(1)} mi`
-                                : 'N/A'}
-                        </span>
-                    </div>
-                    <div className="stat-item">
-                        <span className="stat-label">Latest</span>
-                        <span className="stat-value">{group.mostRecentDate || 'N/A'}</span>
-                    </div>
-                    <div className="stat-item">
                         <svg
                             style={{
                                 width: '1.25rem',
@@ -189,19 +215,52 @@ export default function GBIFObservationGroupRow({ group, searchCoordinates, radi
                         </div>
                     )}
                     {!loading && !error && observations.length > 0 && (
-                        <div style={{
-                            display: 'grid',
-                            gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))',
-                            gap: '1rem',
-                        }}>
-                            {observations.map((obs) => (
-                                <GBIFObservationCard
-                                    key={obs.key}
-                                    observation={obs}
-                                    searchCoordinates={searchCoordinates}
-                                />
-                            ))}
-                        </div>
+                        <>
+                            {/* Stats summary */}
+                            <div style={{
+                                display: 'flex',
+                                gap: '2rem',
+                                marginBottom: '1rem',
+                                padding: '0.75rem 1rem',
+                                backgroundColor: 'var(--bg-tertiary)',
+                                borderRadius: '0.5rem',
+                                fontSize: '0.875rem',
+                            }}>
+                                <div>
+                                    <span style={{ color: 'var(--text-secondary)', marginRight: '0.5rem' }}>
+                                        Closest:
+                                    </span>
+                                    <span style={{ color: 'var(--text-primary)', fontWeight: '500' }}>
+                                        {observationStats.closestDistance !== null
+                                            ? `${observationStats.closestDistance.toFixed(1)} mi`
+                                            : 'N/A'}
+                                    </span>
+                                </div>
+                                <div>
+                                    <span style={{ color: 'var(--text-secondary)', marginRight: '0.5rem' }}>
+                                        Latest:
+                                    </span>
+                                    <span style={{ color: 'var(--text-primary)', fontWeight: '500' }}>
+                                        {observationStats.mostRecentDate || 'N/A'}
+                                    </span>
+                                </div>
+                            </div>
+                            
+                            {/* Observation cards grid */}
+                            <div style={{
+                                display: 'grid',
+                                gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))',
+                                gap: '1rem',
+                            }}>
+                                {observations.map((obs) => (
+                                    <GBIFObservationCard
+                                        key={obs.key}
+                                        observation={obs}
+                                        searchCoordinates={searchCoordinates}
+                                    />
+                                ))}
+                            </div>
+                        </>
                     )}
                     {!loading && !error && observations.length === 0 && (
                         <div style={{ textAlign: 'center', padding: '2rem', color: 'var(--text-secondary)' }}>
