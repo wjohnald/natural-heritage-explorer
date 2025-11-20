@@ -6,7 +6,7 @@ const SCORING_CRITERIA = [
         category: 'Drinking Water',
         name: 'EPA Principal Aquifers',
         score: 1,
-        serviceUrl: 'https://services.arcgis.com/cJ9YHowT8TU7DUyn/arcgis/rest/services/SoleSourceAquifers/FeatureServer/0',
+        serviceUrl: 'https://geopub.epa.gov/arcgis/rest/services/NEPAssist/Water/MapServer/6',
     },
     {
         category: 'Wildlife Habitat',
@@ -63,6 +63,7 @@ const SCORING_CRITERIA = [
 ];
 
 // Helper to query ArcGIS feature service
+// Helper to query ArcGIS feature service
 async function queryFeatureService(
     serviceUrl: string,
     geometry: any,
@@ -74,30 +75,47 @@ async function queryFeatureService(
             : `${serviceUrl}/query`;
 
         // Extract geometry and spatial reference from parcel feature
-        // The `geometry` parameter passed here is already the geometry object (e.g., {rings: ..., spatialReference: ...})
-        // from the parcel feature, so `geom` is simply `geometry`.
         const geom = geometry;
-        const sr = geometry.spatialReference || { wkid: 3857 }; // Default to Web Mercator if not specified
+        const sr = geometry.spatialReference || { wkid: 3857 };
 
         const params = new URLSearchParams({
             f: 'json',
             geometry: JSON.stringify(geom),
             geometryType: 'esriGeometryPolygon',
-            inSR: sr.wkid?.toString() || '3857', // Specify input spatial reference
+            inSR: sr.wkid?.toString() || '3857',
             spatialRel: 'esriSpatialRelIntersects',
             returnGeometry: 'false',
             returnCountOnly: 'true',
         });
 
-        const response = await fetch(`${url}?${params}`);
-        const data = await response.json();
+        // Use POST to handle large geometries
+        const response = await fetch(url, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/x-www-form-urlencoded',
+            },
+            body: params.toString(),
+        });
 
-        // Log for debugging
-        if (data.error) {
-            console.error(`Query error for ${serviceUrl}:`, data.error);
+        if (!response.ok) {
+            console.error(`HTTP error querying ${serviceUrl}: ${response.status} ${response.statusText}`);
+            return false;
         }
 
-        return data.count > 0;
+        const text = await response.text();
+        try {
+            const data = JSON.parse(text);
+
+            if (data.error) {
+                console.error(`Query error for ${serviceUrl}:`, data.error);
+                return false;
+            }
+
+            return data.count > 0;
+        } catch (e) {
+            console.error(`Invalid JSON from ${serviceUrl}:`, text.substring(0, 100));
+            return false;
+        }
     } catch (error) {
         console.error(`Error querying ${serviceUrl}:`, error);
         return false;
