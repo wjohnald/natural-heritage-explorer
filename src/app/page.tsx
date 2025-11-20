@@ -4,14 +4,14 @@ import { useState } from 'react';
 import dynamic from 'next/dynamic';
 import AddressSearch from '@/components/AddressSearch';
 import { geocodeAddress } from '@/services/geocoding';
-import { 
-  iNaturalistObservation, 
+import {
+  iNaturalistObservation,
   GBIFObservation,
-  Coordinates, 
-  SortField, 
-  SortOrder, 
+  Coordinates,
+  SortField,
+  SortOrder,
   ObservationResponse,
-  GBIFObservationResponse 
+  GBIFObservationResponse
 } from '@/types';
 import { groupObservations } from '@/utils/grouping';
 import { groupGBIFObservations } from '@/utils/gbifGrouping';
@@ -54,17 +54,31 @@ export default function Home() {
   const [sortBy, setSortBy] = useState<SortField>('count');
   const [sortOrder, setSortOrder] = useState<SortOrder>('desc');
   const [selectedStatuses, setSelectedStatuses] = useState<Set<string>>(new Set());
+  const [selectedVernalPoolStatuses, setSelectedVernalPoolStatuses] = useState<Set<string>>(new Set());
   const [showSGCN, setShowSGCN] = useState(false);
   const [hoveredSpecies, setHoveredSpecies] = useState<string | null>(null);
 
   // Get unique conservation statuses from observations
   const availableStatuses = ["Endangered", "Threatened", "Special Concern"];
-  
+  const availableVernalPoolStatuses = ["Obligate", "Facultative"];
+
   // Check if any observations have SGCN status
   const hasSGCN = observations.some(obs => obs.conservationNeed) || gbifObservations.some(obs => obs.conservationNeed);
 
   const handleStatusToggle = (status: string) => {
     setSelectedStatuses(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(status)) {
+        newSet.delete(status);
+      } else {
+        newSet.add(status);
+      }
+      return newSet;
+    });
+  };
+
+  const handleVernalPoolStatusToggle = (status: string) => {
+    setSelectedVernalPoolStatuses(prev => {
       const newSet = new Set(prev);
       if (newSet.has(status)) {
         newSet.delete(status);
@@ -96,16 +110,20 @@ export default function Home() {
       });
     }
 
-    // Filter by conservation status
-    if (selectedStatuses.size > 0 || showSGCN) {
+    // Filter by conservation status and vernal pool status
+    if (selectedStatuses.size > 0 || showSGCN || selectedVernalPoolStatuses.size > 0) {
       filtered = filtered.filter(obs => {
-        const matchesStatus = selectedStatuses.size > 0 && 
-          obs.stateProtection && 
+        const matchesStatus = selectedStatuses.size > 0 &&
+          obs.stateProtection &&
           selectedStatuses.has(obs.stateProtection);
-        
+
         const matchesSGCN = showSGCN && obs.conservationNeed;
-        
-        return matchesStatus || matchesSGCN;
+
+        const matchesVernalPool = selectedVernalPoolStatuses.size > 0 &&
+          obs.vernalPoolStatus &&
+          selectedVernalPoolStatuses.has(obs.vernalPoolStatus);
+
+        return matchesStatus || matchesSGCN || matchesVernalPool;
       });
     }
 
@@ -128,19 +146,24 @@ export default function Home() {
       );
     }
 
-    // Filter by conservation status (union - show species matching ANY selected filter)
-    if (selectedStatuses.size > 0 || showSGCN) {
+    // Filter by conservation status and vernal pool status
+    if (selectedStatuses.size > 0 || showSGCN || selectedVernalPoolStatuses.size > 0) {
       filtered = filtered.filter(g => {
         // Check if species matches any selected protection status
-        const matchesStatus = selectedStatuses.size > 0 && g.observations.some(obs => 
+        const matchesStatus = selectedStatuses.size > 0 && g.observations.some(obs =>
           obs.stateProtection && selectedStatuses.has(obs.stateProtection)
         );
-        
+
         // Check if species has SGCN designation (when SGCN filter is active)
         const matchesSGCN = showSGCN && g.observations.some(obs => obs.conservationNeed);
-        
+
+        // Check if species matches any selected vernal pool status
+        const matchesVernalPool = selectedVernalPoolStatuses.size > 0 && g.observations.some(obs =>
+          obs.vernalPoolStatus && selectedVernalPoolStatuses.has(obs.vernalPoolStatus)
+        );
+
         // Return true if matches ANY of the selected criteria (OR logic)
-        return matchesStatus || matchesSGCN;
+        return matchesStatus || matchesSGCN || matchesVernalPool;
       });
     }
 
@@ -166,10 +189,12 @@ export default function Home() {
           // Conservation status priority: Endangered > Threatened > Special Concern > SGCN > None
           const getStatusPriority = (group: typeof a) => {
             const obs = group.observations[0];
-            if (obs.stateProtection === 'Endangered') return 4;
-            if (obs.stateProtection === 'Threatened') return 3;
-            if (obs.stateProtection === 'Special Concern') return 2;
-            if (obs.conservationNeed) return 1;
+            if (obs.stateProtection === 'Endangered') return 6;
+            if (obs.stateProtection === 'Threatened') return 5;
+            if (obs.stateProtection === 'Special Concern') return 4;
+            if (obs.conservationNeed) return 3;
+            if (obs.vernalPoolStatus === 'Obligate') return 2;
+            if (obs.vernalPoolStatus === 'Facultative') return 1;
             return 0;
           };
           comparison = getStatusPriority(a) - getStatusPriority(b);
@@ -196,16 +221,20 @@ export default function Home() {
       });
     }
 
-    // Filter by conservation status
-    if (selectedStatuses.size > 0 || showSGCN) {
+    // Filter by conservation status and vernal pool status
+    if (selectedStatuses.size > 0 || showSGCN || selectedVernalPoolStatuses.size > 0) {
       filtered = filtered.filter(obs => {
-        const matchesStatus = selectedStatuses.size > 0 && 
-          obs.stateProtection && 
+        const matchesStatus = selectedStatuses.size > 0 &&
+          obs.stateProtection &&
           selectedStatuses.has(obs.stateProtection);
-        
+
         const matchesSGCN = showSGCN && obs.conservationNeed;
-        
-        return matchesStatus || matchesSGCN;
+
+        const matchesVernalPool = selectedVernalPoolStatuses.size > 0 &&
+          obs.vernalPoolStatus &&
+          selectedVernalPoolStatuses.has(obs.vernalPoolStatus);
+
+        return matchesStatus || matchesSGCN || matchesVernalPool;
       });
     }
 
@@ -228,16 +257,20 @@ export default function Home() {
       );
     }
 
-    // Filter by conservation status
-    if (selectedStatuses.size > 0 || showSGCN) {
+    // Filter by conservation status and vernal pool status
+    if (selectedStatuses.size > 0 || showSGCN || selectedVernalPoolStatuses.size > 0) {
       filtered = filtered.filter(g => {
-        const matchesStatus = selectedStatuses.size > 0 && g.observations.some(obs => 
+        const matchesStatus = selectedStatuses.size > 0 && g.observations.some(obs =>
           obs.stateProtection && selectedStatuses.has(obs.stateProtection)
         );
-        
+
         const matchesSGCN = showSGCN && g.observations.some(obs => obs.conservationNeed);
-        
-        return matchesStatus || matchesSGCN;
+
+        const matchesVernalPool = selectedVernalPoolStatuses.size > 0 && g.observations.some(obs =>
+          obs.vernalPoolStatus && selectedVernalPoolStatuses.has(obs.vernalPoolStatus)
+        );
+
+        return matchesStatus || matchesSGCN || matchesVernalPool;
       });
     }
 
@@ -261,10 +294,12 @@ export default function Home() {
         case 'status':
           const getStatusPriority = (group: typeof a) => {
             const obs = group.observations[0];
-            if (obs.stateProtection === 'Endangered') return 4;
-            if (obs.stateProtection === 'Threatened') return 3;
-            if (obs.stateProtection === 'Special Concern') return 2;
-            if (obs.conservationNeed) return 1;
+            if (obs.stateProtection === 'Endangered') return 6;
+            if (obs.stateProtection === 'Threatened') return 5;
+            if (obs.stateProtection === 'Special Concern') return 4;
+            if (obs.conservationNeed) return 3;
+            if (obs.vernalPoolStatus === 'Obligate') return 2;
+            if (obs.vernalPoolStatus === 'Facultative') return 1;
             return 0;
           };
           comparison = getStatusPriority(a) - getStatusPriority(b);
@@ -457,7 +492,7 @@ export default function Home() {
             </div>
           )}
 
-          {(observations.length > 0 || gbifObservations.length > 0) && (availableStatuses.length > 0 || hasSGCN) && (
+          {(observations.length > 0 || gbifObservations.length > 0) && (availableStatuses.length > 0 || hasSGCN || availableVernalPoolStatuses.length > 0) && (
             <ConservationFilters
               availableStatuses={availableStatuses}
               selectedStatuses={selectedStatuses}
@@ -465,6 +500,9 @@ export default function Home() {
               hasSGCN={hasSGCN}
               showSGCN={showSGCN}
               onSGCNToggle={handleSGCNToggle}
+              availableVernalPoolStatuses={availableVernalPoolStatuses}
+              selectedVernalPoolStatuses={selectedVernalPoolStatuses}
+              onVernalPoolStatusToggle={handleVernalPoolStatusToggle}
             />
           )}
 
