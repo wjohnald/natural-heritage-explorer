@@ -13,6 +13,8 @@ interface ObservationMapProps {
   hoveredSpecies?: string | null;
 }
 
+type BasemapType = 'topo' | 'street' | 'satellite';
+
 // Component to handle NWI layer clicks and show wetland info
 function WetlandInfoHandler() {
   const map = useMap();
@@ -141,6 +143,8 @@ const MILES_TO_METERS = 1609.34;
 
 export default function ObservationMap({ observations, searchCoordinates, radius = 0.5, hoveredSpecies }: ObservationMapProps) {
   const [isMounted, setIsMounted] = useState(false);
+  const [selectedBasemap, setSelectedBasemap] = useState<BasemapType>('topo');
+  const [showNWI, setShowNWI] = useState(true);
 
   // Prevent hydration errors by only rendering map on client side
   useEffect(() => {
@@ -149,7 +153,7 @@ export default function ObservationMap({ observations, searchCoordinates, radius
 
   if (!isMounted) {
     return (
-      <div className="map-container" style={{ height: '400px', background: 'var(--bg-tertiary)', borderRadius: '0.5rem', border: '1px solid var(--border-color)' }}>
+      <div className="map-container" style={{ height: '600px', background: 'var(--bg-tertiary)', borderRadius: '0.5rem', border: '1px solid var(--border-color)' }}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%' }}>
           <p style={{ color: 'var(--text-secondary)' }}>Loading map...</p>
         </div>
@@ -200,6 +204,7 @@ export default function ObservationMap({ observations, searchCoordinates, radius
   return (
     <div style={{ marginBottom: '2rem' }}>
       <div className="map-wrapper" style={{ position: 'relative' }}>
+        {/* Info hint */}
         <div style={{
           position: 'absolute',
           top: '10px',
@@ -219,47 +224,44 @@ export default function ObservationMap({ observations, searchCoordinates, radius
         <MapContainer
           center={center}
           zoom={13}
-          style={{ height: '400px', width: '100%', borderRadius: '0.5rem', cursor: 'pointer' }}
+          style={{ height: '600px', width: '100%', borderRadius: '0.5rem', cursor: 'pointer' }}
           scrollWheelZoom={true}
         >
           <WetlandInfoHandler />
           
-          <LayersControl position="topright">
-            {/* Base Layers */}
-            <LayersControl.BaseLayer checked name="Topographic">
-              <TileLayer
-                attribution='Tiles &copy; Esri &mdash; Esri, DeLorme, NAVTEQ, TomTom, Intermap, iPC, USGS, FAO, NPS, NRCAN, GeoBase, Kadaster NL, Ordnance Survey, Esri Japan, METI, Esri China (Hong Kong), and the GIS User Community'
-                url="https://server.arcgisonline.com/ArcGIS/rest/services/World_Topo_Map/MapServer/tile/{z}/{y}/{x}"
-              />
-            </LayersControl.BaseLayer>
-            
-            <LayersControl.BaseLayer name="Street Map">
-              <TileLayer
-                attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-                url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-              />
-            </LayersControl.BaseLayer>
-            
-            <LayersControl.BaseLayer name="Satellite">
-              <TileLayer
-                attribution='Tiles &copy; Esri &mdash; Source: Esri, i-cubed, USDA, USGS, AEX, GeoEye, Getmapping, Aerogrid, IGN, IGP, UPR-EGP, and the GIS User Community'
-                url="https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}"
-              />
-            </LayersControl.BaseLayer>
+          {/* Render selected basemap */}
+          {selectedBasemap === 'topo' && (
+            <TileLayer
+              attribution='Tiles &copy; Esri &mdash; Esri, DeLorme, NAVTEQ, TomTom, Intermap, iPC, USGS, FAO, NPS, NRCAN, GeoBase, Kadaster NL, Ordnance Survey, Esri Japan, METI, Esri China (Hong Kong), and the GIS User Community'
+              url="https://server.arcgisonline.com/ArcGIS/rest/services/World_Topo_Map/MapServer/tile/{z}/{y}/{x}"
+            />
+          )}
+          {selectedBasemap === 'street' && (
+            <TileLayer
+              attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+              url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+            />
+          )}
+          {selectedBasemap === 'satellite' && (
+            <TileLayer
+              attribution='Tiles &copy; Esri &mdash; Source: Esri, i-cubed, USDA, USGS, AEX, GeoEye, Getmapping, Aerogrid, IGN, IGP, UPR-EGP, and the GIS User Community'
+              url="https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}"
+            />
+          )}
 
-            {/* Overlay Layers */}
-            <LayersControl.Overlay checked name="National Wetlands Inventory">
-              <WMSTileLayer
-                url="https://fwspublicservices.wim.usgs.gov/wetlandsmapservice/services/Wetlands/MapServer/WMSServer"
-                layers="1"
-                format="image/png"
-                transparent={true}
-                version="1.1.1"
-                attribution='<a href="https://www.fws.gov/program/national-wetlands-inventory" target="_blank">USFWS National Wetlands Inventory</a>'
-                opacity={0.6}
-              />
-            </LayersControl.Overlay>
-          </LayersControl>
+          {/* Conditionally render NWI Layer */}
+          {showNWI && (
+            <WMSTileLayer
+              key={`nwi-${selectedBasemap}`}
+              url="https://fwspublicservices.wim.usgs.gov/wetlandsmapservice/services/Wetlands/MapServer/WMSServer"
+              layers="1"
+              format="image/png"
+              transparent={true}
+              version="1.1.1"
+              attribution='<a href="https://www.fws.gov/program/national-wetlands-inventory" target="_blank">USFWS National Wetlands Inventory</a>'
+              opacity={0.6}
+            />
+          )}
 
           {/* Search center marker */}
           <CircleMarker
@@ -462,6 +464,177 @@ export default function ObservationMap({ observations, searchCoordinates, radius
               );
             })}
         </MapContainer>
+      </div>
+
+      {/* Map Control Panel - Below the map */}
+      <div style={{
+        marginTop: '0.75rem',
+        background: 'var(--bg-primary)',
+        padding: '0.75rem 1rem',
+        borderRadius: '0.5rem',
+        border: '1px solid var(--border-color)',
+        boxShadow: '0 1px 2px rgba(0,0,0,0.05)',
+      }}>
+        <div style={{ display: 'flex', gap: '1.5rem', alignItems: 'center', flexWrap: 'wrap' }}>
+          {/* Basemap Selection */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+            <span style={{
+              fontSize: '0.8125rem',
+              fontWeight: 600,
+              color: 'var(--text-secondary)',
+              textTransform: 'uppercase',
+              letterSpacing: '0.025em',
+            }}>
+              Basemap:
+            </span>
+            <div style={{ display: 'flex', gap: '0.5rem' }}>
+              <button
+                onClick={() => setSelectedBasemap('topo')}
+                style={{
+                  padding: '0.375rem 0.75rem',
+                  background: selectedBasemap === 'topo' ? '#2563eb' : 'white',
+                  color: selectedBasemap === 'topo' ? 'white' : '#374151',
+                  border: '1.5px solid',
+                  borderColor: selectedBasemap === 'topo' ? '#2563eb' : '#d1d5db',
+                  borderRadius: '0.375rem',
+                  fontSize: '0.8125rem',
+                  cursor: 'pointer',
+                  fontWeight: 600,
+                  transition: 'all 0.2s',
+                  boxShadow: selectedBasemap === 'topo' ? '0 1px 3px rgba(37, 99, 235, 0.3)' : 'none',
+                  whiteSpace: 'nowrap',
+                }}
+                onMouseEnter={(e) => {
+                  if (selectedBasemap !== 'topo') {
+                    e.currentTarget.style.borderColor = '#9ca3af';
+                    e.currentTarget.style.background = '#f9fafb';
+                  }
+                }}
+                onMouseLeave={(e) => {
+                  if (selectedBasemap !== 'topo') {
+                    e.currentTarget.style.borderColor = '#d1d5db';
+                    e.currentTarget.style.background = 'white';
+                  }
+                }}
+              >
+                🗺️ Topo
+              </button>
+              <button
+                onClick={() => setSelectedBasemap('street')}
+                style={{
+                  padding: '0.375rem 0.75rem',
+                  background: selectedBasemap === 'street' ? '#2563eb' : 'white',
+                  color: selectedBasemap === 'street' ? 'white' : '#374151',
+                  border: '1.5px solid',
+                  borderColor: selectedBasemap === 'street' ? '#2563eb' : '#d1d5db',
+                  borderRadius: '0.375rem',
+                  fontSize: '0.8125rem',
+                  cursor: 'pointer',
+                  fontWeight: 600,
+                  transition: 'all 0.2s',
+                  boxShadow: selectedBasemap === 'street' ? '0 1px 3px rgba(37, 99, 235, 0.3)' : 'none',
+                  whiteSpace: 'nowrap',
+                }}
+                onMouseEnter={(e) => {
+                  if (selectedBasemap !== 'street') {
+                    e.currentTarget.style.borderColor = '#9ca3af';
+                    e.currentTarget.style.background = '#f9fafb';
+                  }
+                }}
+                onMouseLeave={(e) => {
+                  if (selectedBasemap !== 'street') {
+                    e.currentTarget.style.borderColor = '#d1d5db';
+                    e.currentTarget.style.background = 'white';
+                  }
+                }}
+              >
+                🛣️ Street
+              </button>
+              <button
+                onClick={() => setSelectedBasemap('satellite')}
+                style={{
+                  padding: '0.375rem 0.75rem',
+                  background: selectedBasemap === 'satellite' ? '#2563eb' : 'white',
+                  color: selectedBasemap === 'satellite' ? 'white' : '#374151',
+                  border: '1.5px solid',
+                  borderColor: selectedBasemap === 'satellite' ? '#2563eb' : '#d1d5db',
+                  borderRadius: '0.375rem',
+                  fontSize: '0.8125rem',
+                  cursor: 'pointer',
+                  fontWeight: 600,
+                  transition: 'all 0.2s',
+                  boxShadow: selectedBasemap === 'satellite' ? '0 1px 3px rgba(37, 99, 235, 0.3)' : 'none',
+                  whiteSpace: 'nowrap',
+                }}
+                onMouseEnter={(e) => {
+                  if (selectedBasemap !== 'satellite') {
+                    e.currentTarget.style.borderColor = '#9ca3af';
+                    e.currentTarget.style.background = '#f9fafb';
+                  }
+                }}
+                onMouseLeave={(e) => {
+                  if (selectedBasemap !== 'satellite') {
+                    e.currentTarget.style.borderColor = '#d1d5db';
+                    e.currentTarget.style.background = 'white';
+                  }
+                }}
+              >
+                🛰️ Satellite
+              </button>
+            </div>
+          </div>
+
+          {/* Divider */}
+          <div style={{
+            width: '1px',
+            height: '1.5rem',
+            background: 'var(--border-color)',
+          }} />
+
+          {/* NWI Layer Toggle */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+            <span style={{
+              fontSize: '0.8125rem',
+              fontWeight: 600,
+              color: 'var(--text-secondary)',
+              textTransform: 'uppercase',
+              letterSpacing: '0.025em',
+            }}>
+              Overlay:
+            </span>
+            <button
+              onClick={() => setShowNWI(!showNWI)}
+              style={{
+                padding: '0.375rem 0.75rem',
+                background: showNWI ? '#10b981' : 'white',
+                color: showNWI ? 'white' : '#374151',
+                border: '1.5px solid',
+                borderColor: showNWI ? '#10b981' : '#d1d5db',
+                borderRadius: '0.375rem',
+                fontSize: '0.8125rem',
+                cursor: 'pointer',
+                fontWeight: 600,
+                transition: 'all 0.2s',
+                boxShadow: showNWI ? '0 1px 3px rgba(16, 185, 129, 0.3)' : 'none',
+                whiteSpace: 'nowrap',
+              }}
+              onMouseEnter={(e) => {
+                if (!showNWI) {
+                  e.currentTarget.style.borderColor = '#9ca3af';
+                  e.currentTarget.style.background = '#f9fafb';
+                }
+              }}
+              onMouseLeave={(e) => {
+                if (!showNWI) {
+                  e.currentTarget.style.borderColor = '#d1d5db';
+                  e.currentTarget.style.background = 'white';
+                }
+              }}
+            >
+              {showNWI ? '✓' : '○'} Wetlands
+            </button>
+          </div>
+        </div>
       </div>
 
       {totalObservations > 0 && (
