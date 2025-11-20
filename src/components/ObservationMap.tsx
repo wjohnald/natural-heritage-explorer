@@ -243,10 +243,20 @@ export default function ObservationMap({ observations, searchCoordinates, radius
             />
           )}
           {selectedBasemap === 'satellite' && (
-            <TileLayer
-              attribution='Tiles &copy; Esri &mdash; Source: Esri, i-cubed, USDA, USGS, AEX, GeoEye, Getmapping, Aerogrid, IGN, IGP, UPR-EGP, and the GIS User Community'
-              url="https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}"
-            />
+            <>
+              <TileLayer
+                attribution='Tiles &copy; Esri &mdash; Source: Esri, Maxar, Earthstar Geographics, and the GIS User Community'
+                url="https://clarity.maptiles.arcgis.com/arcgis/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}"
+                maxZoom={22}
+                maxNativeZoom={19}
+              />
+              {/* Add labels overlay for satellite view */}
+              <TileLayer
+                attribution=''
+                url="https://server.arcgisonline.com/ArcGIS/rest/services/Reference/World_Boundaries_and_Places/MapServer/tile/{z}/{y}/{x}"
+                opacity={0.5}
+              />
+            </>
           )}
 
           {/* Conditionally render NWI Layer */}
@@ -260,6 +270,8 @@ export default function ObservationMap({ observations, searchCoordinates, radius
               version="1.1.1"
               attribution='<a href="https://www.fws.gov/program/national-wetlands-inventory" target="_blank">USFWS National Wetlands Inventory</a>'
               opacity={0.6}
+              maxZoom={22}
+              maxNativeZoom={19}
             />
           )}
 
