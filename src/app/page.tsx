@@ -14,7 +14,7 @@ import ConservationFilters from '@/components/ConservationFilters';
 const ObservationMap = dynamic(() => import('@/components/ObservationMap'), {
   ssr: false,
   loading: () => (
-    <div className="map-container" style={{ height: '400px', background: 'var(--bg-secondary)', borderRadius: '0.5rem', marginBottom: '2rem' }}>
+    <div className="map-container" style={{ height: '400px', background: 'var(--bg-tertiary)', borderRadius: '0.5rem', marginBottom: '2rem', border: '1px solid var(--border-color)' }}>
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%' }}>
         <p style={{ color: 'var(--text-secondary)' }}>Loading map...</p>
       </div>

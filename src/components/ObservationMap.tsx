@@ -24,9 +24,9 @@ export default function ObservationMap({ observations, searchCoordinates, radius
 
   if (!isMounted) {
     return (
-      <div className="map-container" style={{ height: '400px', background: '#e5e7eb', borderRadius: '0.5rem' }}>
+      <div className="map-container" style={{ height: '400px', background: 'var(--bg-tertiary)', borderRadius: '0.5rem', border: '1px solid var(--border-color)' }}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%' }}>
-          <p>Loading map...</p>
+          <p style={{ color: 'var(--text-secondary)' }}>Loading map...</p>
         </div>
       </div>
     );
