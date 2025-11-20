@@ -40,8 +40,8 @@ export default function AddressSearch({
                     <span className="title-gradient">Biodiversity</span> Explorer
                 </h1>
                 <p className="search-description">
-                    Discover biodiversity near any location. Enter an address and adjust the search radius
-                    to find biodiversity in your area.
+                    Discover biodiversity near any location. Enter an address or coordinates (latitude, longitude)
+                    and adjust the search radius to explore species in your area.
                 </p>
             </div>
 
@@ -65,7 +65,7 @@ export default function AddressSearch({
                         type="text"
                         value={address}
                         onChange={(e) => setAddress(e.target.value)}
-                        placeholder="Enter a street address (e.g., 123 Main St, New York, NY)"
+                        placeholder="Enter an address or coordinates (e.g., 44.2176, -73.4301)"
                         className="search-input"
                         disabled={loading}
                     />
