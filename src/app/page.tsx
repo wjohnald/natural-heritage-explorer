@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import dynamic from 'next/dynamic';
 import AddressSearch from '@/components/AddressSearch';
 import { geocodeAddress } from '@/services/geocoding';
 import { iNaturalistObservation, Coordinates, SortField, SortOrder, ObservationResponse } from '@/types';
@@ -8,6 +9,18 @@ import { groupObservations } from '@/utils/grouping';
 import ObservationGroupRow from '@/components/ObservationGroupRow';
 import ObservationFilters from '@/components/ObservationFilters';
 import ConservationFilters from '@/components/ConservationFilters';
+
+// Dynamically import the map component to avoid SSR issues with Leaflet
+const ObservationMap = dynamic(() => import('@/components/ObservationMap'), {
+  ssr: false,
+  loading: () => (
+    <div className="map-container" style={{ height: '400px', background: 'var(--bg-secondary)', borderRadius: '0.5rem', marginBottom: '2rem' }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%' }}>
+        <p style={{ color: 'var(--text-secondary)' }}>Loading map...</p>
+      </div>
+    </div>
+  ),
+});
 
 export default function Home() {
   const [observations, setObservations] = useState<iNaturalistObservation[]>([]);
@@ -46,6 +59,39 @@ export default function Home() {
 
   const handleSGCNToggle = () => {
     setShowSGCN(prev => !prev);
+  };
+
+  // Filter individual observations for the map
+  const getFilteredObservations = () => {
+    let filtered = observations;
+
+    // Filter by search term
+    if (filterTerm.trim()) {
+      const term = filterTerm.toLowerCase();
+      filtered = filtered.filter((obs) => {
+        const commonName = obs.taxon?.preferred_common_name || obs.species_guess || '';
+        const scientificName = obs.taxon?.name || '';
+        return (
+          commonName.toLowerCase().includes(term) ||
+          scientificName.toLowerCase().includes(term)
+        );
+      });
+    }
+
+    // Filter by conservation status
+    if (selectedStatuses.size > 0 || showSGCN) {
+      filtered = filtered.filter(obs => {
+        const matchesStatus = selectedStatuses.size > 0 && 
+          obs.stateProtection && 
+          selectedStatuses.has(obs.stateProtection);
+        
+        const matchesSGCN = showSGCN && obs.conservationNeed;
+        
+        return matchesStatus || matchesSGCN;
+      });
+    }
+
+    return filtered;
   };
 
   const getFilteredAndSortedGroups = () => {
@@ -115,6 +161,7 @@ export default function Home() {
     });
   };
 
+  const filteredObservations = getFilteredObservations();
   const filteredAndSortedGroups = getFilteredAndSortedGroups();
 
   const handleSearch = async (address: string, searchRadius: number) => {
@@ -288,6 +335,12 @@ export default function Home() {
                     setSortBy(field);
                     setSortOrder(order);
                   }}
+                />
+
+                <ObservationMap
+                  observations={filteredObservations}
+                  searchCoordinates={searchCoordinates || undefined}
+                  radius={radius}
                 />
 
                 <div className="observations-list">

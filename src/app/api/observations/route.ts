@@ -65,6 +65,7 @@ async function fetchPage(lat: number, lon: number, radiusKm: number, page: numbe
         page: page.toString(),
         order: 'desc',
         order_by: 'observed_on',
+        mappable: 'true', // Only return observations with coordinates
     });
 
     const url = `${INATURALIST_API_BASE}/observations?${params.toString()}`;
