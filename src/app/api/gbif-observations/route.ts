@@ -14,6 +14,7 @@ export async function GET(request: NextRequest) {
     const lon = searchParams.get('lon');
     const radiusMiles = searchParams.get('radius');
     const pageParam = searchParams.get('page');
+    const scientificNameParam = searchParams.get('scientificName');
     const page = pageParam ? parseInt(pageParam) : 1;
 
     if (!lat || !lon) {
@@ -37,7 +38,8 @@ export async function GET(request: NextRequest) {
             parseFloat(lat),
             parseFloat(lon),
             radiusDegrees,
-            offset
+            offset,
+            scientificNameParam || undefined
         );
 
         const observations: GBIFObservation[] = gbifData.results;
@@ -100,6 +102,7 @@ async function fetchGBIFPage(
     lon: number,
     radiusDegrees: number,
     offset: number,
+    scientificName?: string,
     retryCount = 0
 ): Promise<GBIFResponse> {
     // Calculate bounding box
@@ -118,6 +121,11 @@ async function fetchGBIFPage(
         hasCoordinate: 'true',
         hasGeospatialIssue: 'false',
     });
+
+    // Add scientific name filter if provided
+    if (scientificName) {
+        params.append('scientificName', scientificName);
+    }
 
     const url = `${GBIF_API_BASE}/occurrence/search?${params.toString()}`;
     const MAX_RETRIES = 5;

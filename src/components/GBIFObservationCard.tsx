@@ -169,7 +169,7 @@ export default function GBIFObservationCard({ observation, searchCoordinates }: 
                             className="card-link"
                         >
                             View on iNaturalist
-                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <svg style={{ width: '1rem', height: '1rem' }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path
                                     strokeLinecap="round"
                                     strokeLinejoin="round"
@@ -187,7 +187,7 @@ export default function GBIFObservationCard({ observation, searchCoordinates }: 
                             className="card-link"
                         >
                             View on GBIF
-                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <svg style={{ width: '1rem', height: '1rem' }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path
                                     strokeLinecap="round"
                                     strokeLinejoin="round"

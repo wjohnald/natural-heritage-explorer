@@ -12,6 +12,7 @@ export async function GET(request: NextRequest) {
     const lon = searchParams.get('lon');
     const radiusMiles = searchParams.get('radius');
     const pageParam = searchParams.get('page');
+    const taxonIdParam = searchParams.get('taxonId');
     const page = pageParam ? parseInt(pageParam) : 1;
 
     if (!lat || !lon) {
@@ -24,10 +25,11 @@ export async function GET(request: NextRequest) {
     // Use provided radius or default to 3 miles
     const radius = radiusMiles ? parseFloat(radiusMiles) : 3;
     const radiusKm = radius * MILES_TO_KM;
+    const taxonId = taxonIdParam ? parseInt(taxonIdParam) : undefined;
 
     try {
         // Fetch specific page
-        const pageData = await fetchPage(parseFloat(lat), parseFloat(lon), radiusKm, page);
+        const pageData = await fetchPage(parseFloat(lat), parseFloat(lon), radiusKm, page, taxonId);
         const observations: any[] = pageData.results;
         const totalResults = pageData.total_results;
 
@@ -64,7 +66,7 @@ export async function GET(request: NextRequest) {
     }
 }
 
-async function fetchPage(lat: number, lon: number, radiusKm: number, page: number, retryCount = 0): Promise<any> {
+async function fetchPage(lat: number, lon: number, radiusKm: number, page: number, taxonId?: number, retryCount = 0): Promise<any> {
     const params = new URLSearchParams({
         lat: lat.toString(),
         lng: lon.toString(),
@@ -75,6 +77,11 @@ async function fetchPage(lat: number, lon: number, radiusKm: number, page: numbe
         order_by: 'observed_on',
         mappable: 'true', // Only return observations with coordinates
     });
+
+    // Add taxon filter if provided
+    if (taxonId) {
+        params.append('taxon_id', taxonId.toString());
+    }
 
     const url = `${INATURALIST_API_BASE}/observations?${params.toString()}`;
     const MAX_RETRIES = 5;

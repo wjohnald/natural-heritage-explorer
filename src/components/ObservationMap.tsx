@@ -79,6 +79,8 @@ export default function ObservationMap({ observations, searchCoordinates, radius
 
   // Count obscured observations
   const obscuredCount = observations.filter(obs => isObscured(obs)).length;
+  const totalObservations = observations.length;
+  const plotted = validObservations.length;
 
   if (!searchCoordinates) {
     return null;
@@ -322,7 +324,7 @@ export default function ObservationMap({ observations, searchCoordinates, radius
         </MapContainer>
       </div>
 
-      {obscuredCount > 0 && (
+      {totalObservations > 0 && (
         <div style={{
           padding: '0.875rem 1.25rem',
           background: 'var(--bg-secondary)',
@@ -330,26 +332,55 @@ export default function ObservationMap({ observations, searchCoordinates, radius
           borderRadius: '0.75rem',
           display: 'flex',
           alignItems: 'center',
-          gap: '0.75rem',
+          justifyContent: 'space-between',
+          gap: '1rem',
           color: 'var(--text-secondary)',
           fontSize: '0.9rem',
         }}>
-          <svg
-            style={{ width: '1.25rem', height: '1.25rem', color: 'var(--color-accent)', flexShrink: 0 }}
-            fill="none"
-            stroke="currentColor"
-            viewBox="0 0 24 24"
-          >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth={2}
-              d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"
-            />
-          </svg>
-          <span>
-            <strong style={{ color: 'var(--text-primary)' }}>{obscuredCount}</strong> observation{obscuredCount !== 1 ? 's' : ''} not shown on map due to obscured coordinates (for species protection)
-          </span>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+            <svg
+              style={{ width: '1.25rem', height: '1.25rem', color: 'var(--accent-primary)', flexShrink: 0 }}
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"
+              />
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"
+              />
+            </svg>
+            <span>
+              <strong style={{ color: 'var(--text-primary)' }}>{plotted}</strong> of <strong style={{ color: 'var(--text-primary)' }}>{totalObservations}</strong> observations plotted on map
+            </span>
+          </div>
+          {obscuredCount > 0 && (
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+              <svg
+                style={{ width: '1rem', height: '1rem', color: 'var(--color-accent)', flexShrink: 0 }}
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"
+                />
+              </svg>
+              <span style={{ fontSize: '0.85rem' }}>
+                {obscuredCount} obscured
+              </span>
+            </div>
+          )}
         </div>
       )}
     </div>

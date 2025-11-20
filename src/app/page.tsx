@@ -71,6 +71,7 @@ function HomeContent() {
   const [selectedVernalPoolStatuses, setSelectedVernalPoolStatuses] = useState<Set<string>>(new Set());
   const [showSGCN, setShowSGCN] = useState(false);
   const [hoveredSpecies, setHoveredSpecies] = useState<string | null>(null);
+  const [expandedSpeciesObservations, setExpandedSpeciesObservations] = useState<(iNaturalistObservation | GBIFObservation)[]>([]);
 
   // Get unique conservation statuses from observations
   const availableStatuses = ["Endangered", "Threatened", "Special Concern"];
@@ -479,6 +480,16 @@ function HomeContent() {
     handleSearch(coordString, radius);
   };
 
+  // Handle species row expansion - show observations on map
+  const handleSpeciesExpand = (scientificName: string, observations: (iNaturalistObservation | GBIFObservation)[]) => {
+    setExpandedSpeciesObservations(observations);
+  };
+
+  // Handle species row collapse - clear map observations
+  const handleSpeciesCollapse = () => {
+    setExpandedSpeciesObservations([]);
+  };
+
   const filteredObservations = getFilteredObservations();
   const filteredAndSortedGroups = getFilteredAndSortedGroups();
   const filteredAndSortedSpeciesGroups = getFilteredAndSortedSpeciesGroups();
@@ -815,7 +826,7 @@ function HomeContent() {
             <div className="observations-section">
               {/* Map - Always visible when we have data */}
               <ObservationMap
-                observations={[...filteredObservations, ...filteredGBIFObservations]}
+                observations={expandedSpeciesObservations.length > 0 ? expandedSpeciesObservations : [...filteredObservations, ...filteredGBIFObservations]}
                 searchCoordinates={searchCoordinates || undefined}
                 radius={radius}
                 hoveredSpecies={hoveredSpecies}
@@ -856,8 +867,11 @@ function HomeContent() {
                         key={`inat-${group.scientificName}-${index}`}
                         group={group}
                         searchCoordinates={searchCoordinates || undefined}
+                        radius={radius}
                         onHover={(scientificName) => setHoveredSpecies(scientificName)}
                         onHoverEnd={() => setHoveredSpecies(null)}
+                        onExpand={handleSpeciesExpand}
+                        onCollapse={handleSpeciesCollapse}
                       />
                     ))}
                     {(speciesLoading || loading) && (
@@ -879,8 +893,11 @@ function HomeContent() {
                         key={`gbif-${group.scientificName}-${index}`}
                         group={group}
                         searchCoordinates={searchCoordinates || undefined}
+                        radius={radius}
                         onHover={(scientificName) => setHoveredSpecies(scientificName)}
                         onHoverEnd={() => setHoveredSpecies(null)}
+                        onExpand={handleSpeciesExpand}
+                        onCollapse={handleSpeciesCollapse}
                       />
                     ))}
                     {(gbifSpeciesLoading || gbifLoading) && (
