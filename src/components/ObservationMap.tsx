@@ -31,8 +31,13 @@ export default function ObservationMap({ observations, searchCoordinates, radius
     );
   }
 
-  // Filter observations that have valid coordinates
+  // Filter observations that have valid coordinates AND are not obscured
   const validObservations = observations.filter(obs => {
+    // Check if coordinates are obscured
+    const isObscured = obs.obscured || obs.coordinates_obscured || 
+                       (obs.geoprivacy && obs.geoprivacy !== 'open');
+    if (isObscured) return false;
+    
     // Check for direct lat/lng
     if (obs.latitude && obs.longitude) return true;
     // Check for geojson coordinates
@@ -40,11 +45,18 @@ export default function ObservationMap({ observations, searchCoordinates, radius
     return false;
   });
 
+  // Count obscured observations
+  const obscuredCount = observations.filter(obs => {
+    const isObscured = obs.obscured || obs.coordinates_obscured || 
+                       (obs.geoprivacy && obs.geoprivacy !== 'open');
+    return isObscured;
+  }).length;
+
   if (!searchCoordinates) {
     return null;
   }
 
-  if (validObservations.length === 0) {
+  if (validObservations.length === 0 && obscuredCount === 0) {
     return (
       <div className="map-wrapper" style={{ marginBottom: '2rem' }}>
         <div style={{ 
@@ -61,14 +73,11 @@ export default function ObservationMap({ observations, searchCoordinates, radius
     );
   }
 
-  // Calculate bounds to fit all observations
-  const lats = validObservations.map(obs => obs.latitude!);
-  const lngs = validObservations.map(obs => obs.longitude!);
-  
   const center: [number, number] = [searchCoordinates.lat, searchCoordinates.lon];
   
   return (
-    <div className="map-wrapper">
+    <div style={{ marginBottom: '2rem' }}>
+      <div className="map-wrapper">
       <MapContainer
         center={center}
         zoom={13}
@@ -221,6 +230,38 @@ export default function ObservationMap({ observations, searchCoordinates, radius
           );
         })}
       </MapContainer>
+      </div>
+
+      {obscuredCount > 0 && (
+        <div style={{
+          padding: '0.875rem 1.25rem',
+          background: 'var(--bg-secondary)',
+          border: '1px solid var(--border-color)',
+          borderRadius: '0.75rem',
+          display: 'flex',
+          alignItems: 'center',
+          gap: '0.75rem',
+          color: 'var(--text-secondary)',
+          fontSize: '0.9rem',
+        }}>
+          <svg 
+            style={{ width: '1.25rem', height: '1.25rem', color: 'var(--color-accent)', flexShrink: 0 }}
+            fill="none" 
+            stroke="currentColor" 
+            viewBox="0 0 24 24"
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2}
+              d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"
+            />
+          </svg>
+          <span>
+            <strong style={{ color: 'var(--text-primary)' }}>{obscuredCount}</strong> observation{obscuredCount !== 1 ? 's' : ''} not shown on map due to obscured coordinates (for species protection)
+          </span>
+        </div>
+      )}
     </div>
   );
 }

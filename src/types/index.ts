@@ -23,6 +23,9 @@ export interface iNaturalistObservation {
   location?: string;
   latitude?: number;
   longitude?: number;
+  obscured?: boolean;
+  geoprivacy?: string | null; // "obscured", "obscured_private", "private", or null for open
+  coordinates_obscured?: boolean;
   user?: {
     id: number;
     login: string;
