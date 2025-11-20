@@ -61,41 +61,44 @@ export default function GBIFObservationGroupRow({ group, searchCoordinates, radi
     const handleToggle = async () => {
         const willExpand = !isExpanded;
         
-        if (willExpand && observations.length === 0 && searchCoordinates) {
-            // Load observations when expanding for the first time
-            setLoading(true);
-            setError(null);
-            try {
-                const scientificName = group.scientificName;
-                if (!scientificName) {
-                    throw new Error('No scientific name available');
-                }
-
-                const response = await fetch(
-                    `/api/gbif-observations?lat=${searchCoordinates.lat}&lon=${searchCoordinates.lon}&radius=${radius}&scientificName=${encodeURIComponent(scientificName)}`
-                );
-
-                if (!response.ok) {
-                    throw new Error('Failed to load observations');
-                }
-
-                const data = await response.json();
-                setObservations(data.observations);
-                setIsExpanded(true);
-                // Notify parent with observations for map plotting
-                if (onExpand) {
-                    onExpand(group.scientificName, data.observations);
-                }
-            } catch (err) {
-                setError(err instanceof Error ? err.message : 'Failed to load observations');
-            } finally {
-                setLoading(false);
-            }
-        } else if (willExpand && observations.length > 0) {
-            // Already have observations, just expand
+        if (willExpand) {
+            // Expand immediately (optimistically)
             setIsExpanded(true);
-            if (onExpand) {
-                onExpand(group.scientificName, observations);
+            
+            if (observations.length === 0 && searchCoordinates) {
+                // Load observations for the first time
+                setLoading(true);
+                setError(null);
+                try {
+                    const scientificName = group.scientificName;
+                    if (!scientificName) {
+                        throw new Error('No scientific name available');
+                    }
+
+                    const response = await fetch(
+                        `/api/gbif-observations?lat=${searchCoordinates.lat}&lon=${searchCoordinates.lon}&radius=${radius}&scientificName=${encodeURIComponent(scientificName)}`
+                    );
+
+                    if (!response.ok) {
+                        throw new Error('Failed to load observations');
+                    }
+
+                    const data = await response.json();
+                    setObservations(data.observations);
+                    // Notify parent with observations for map plotting
+                    if (onExpand) {
+                        onExpand(group.scientificName, data.observations);
+                    }
+                } catch (err) {
+                    setError(err instanceof Error ? err.message : 'Failed to load observations');
+                } finally {
+                    setLoading(false);
+                }
+            } else if (observations.length > 0) {
+                // Already have observations, notify parent
+                if (onExpand) {
+                    onExpand(group.scientificName, observations);
+                }
             }
         } else {
             // Collapsing
