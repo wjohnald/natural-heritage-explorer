@@ -7,13 +7,19 @@ import ObservationCard from './ObservationCard';
 interface ObservationGroupRowProps {
     group: GroupedObservation;
     searchCoordinates?: Coordinates;
+    onHover?: (scientificName: string) => void;
+    onHoverEnd?: () => void;
 }
 
-export default function ObservationGroupRow({ group, searchCoordinates }: ObservationGroupRowProps) {
+export default function ObservationGroupRow({ group, searchCoordinates, onHover, onHoverEnd }: ObservationGroupRowProps) {
     const [isExpanded, setIsExpanded] = useState(false);
 
     return (
-        <div className={`group-row ${isExpanded ? 'expanded' : ''}`}>
+        <div 
+            className={`group-row ${isExpanded ? 'expanded' : ''}`}
+            onMouseEnter={() => onHover?.(group.scientificName)}
+            onMouseLeave={() => onHoverEnd?.()}
+        >
             <div
                 className="group-summary"
                 onClick={() => setIsExpanded(!isExpanded)}

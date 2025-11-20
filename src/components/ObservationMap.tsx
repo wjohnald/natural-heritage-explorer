@@ -9,11 +9,12 @@ interface ObservationMapProps {
   observations: iNaturalistObservation[];
   searchCoordinates?: Coordinates;
   radius?: number; // in miles
+  hoveredSpecies?: string | null;
 }
 
 const MILES_TO_METERS = 1609.34;
 
-export default function ObservationMap({ observations, searchCoordinates, radius = 0.5 }: ObservationMapProps) {
+export default function ObservationMap({ observations, searchCoordinates, radius = 0.5, hoveredSpecies }: ObservationMapProps) {
   const [isMounted, setIsMounted] = useState(false);
 
   // Prevent hydration errors by only rendering map on client side
@@ -123,7 +124,19 @@ export default function ObservationMap({ observations, searchCoordinates, radius
         )}
 
         {/* Observation markers */}
-        {validObservations.map((obs, index) => {
+        {validObservations
+          .sort((a, b) => {
+            // Sort so hovered species render last (appear on top)
+            const aScientificName = a.taxon?.name || '';
+            const bScientificName = b.taxon?.name || '';
+            const aIsHovered = hoveredSpecies === aScientificName;
+            const bIsHovered = hoveredSpecies === bScientificName;
+            
+            if (aIsHovered && !bIsHovered) return 1;
+            if (!aIsHovered && bIsHovered) return -1;
+            return 0;
+          })
+          .map((obs, index) => {
           // Get coordinates from either direct fields or geojson
           let lat: number, lng: number;
           if (obs.latitude && obs.longitude) {
@@ -140,6 +153,8 @@ export default function ObservationMap({ observations, searchCoordinates, radius
           const position: [number, number] = [lat, lng];
           const commonName = obs.taxon?.preferred_common_name || obs.species_guess || 'Unknown species';
           const scientificName = obs.taxon?.name || '';
+          const isHovered = hoveredSpecies === scientificName;
+          const isDimmed = hoveredSpecies && !isHovered;
           
           // Color code by conservation status
           let color = '#22c55e'; // default green
@@ -153,16 +168,19 @@ export default function ObservationMap({ observations, searchCoordinates, radius
             color = '#3b82f6'; // blue
           }
 
+          // If dimmed, use gray
+          const displayColor = isDimmed ? '#6b7280' : color;
+
           return (
             <CircleMarker
               key={`${obs.id}-${index}`}
               center={position}
-              radius={6}
+              radius={isHovered ? 10 : 6}
               pathOptions={{
-                color: color,
-                fillColor: color,
-                fillOpacity: 0.6,
-                weight: 2,
+                color: displayColor,
+                fillColor: displayColor,
+                fillOpacity: isDimmed ? 0.1 : (isHovered ? 1 : 0.6),
+                weight: isHovered ? 3 : 2,
               }}
             >
               <Popup>

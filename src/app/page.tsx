@@ -38,6 +38,7 @@ export default function Home() {
   const [sortOrder, setSortOrder] = useState<SortOrder>('desc');
   const [selectedStatuses, setSelectedStatuses] = useState<Set<string>>(new Set());
   const [showSGCN, setShowSGCN] = useState(false);
+  const [hoveredSpecies, setHoveredSpecies] = useState<string | null>(null);
 
   // Get unique conservation statuses from observations
   const availableStatuses = ["Endangered", "Threatened", "Special Concern"];
@@ -345,6 +346,7 @@ export default function Home() {
                   observations={filteredObservations}
                   searchCoordinates={searchCoordinates || undefined}
                   radius={radius}
+                  hoveredSpecies={hoveredSpecies}
                 />
 
                 <div className="observations-list">
@@ -355,6 +357,8 @@ export default function Home() {
                           key={`${group.scientificName}-${index}`}
                           group={group}
                           searchCoordinates={searchCoordinates || undefined}
+                          onHover={(scientificName) => setHoveredSpecies(scientificName)}
+                          onHoverEnd={() => setHoveredSpecies(null)}
                         />
                       ))}
                       {loading && (
