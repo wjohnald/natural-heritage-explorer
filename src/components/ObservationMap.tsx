@@ -2,11 +2,11 @@
 
 import { useEffect, useState } from 'react';
 import { MapContainer, TileLayer, CircleMarker, Popup, Circle } from 'react-leaflet';
-import { iNaturalistObservation, Coordinates } from '@/types';
+import { iNaturalistObservation, GBIFObservation, Coordinates } from '@/types';
 import 'leaflet/dist/leaflet.css';
 
 interface ObservationMapProps {
-  observations: iNaturalistObservation[];
+  observations: (iNaturalistObservation | GBIFObservation)[];
   searchCoordinates?: Coordinates;
   radius?: number; // in miles
   hoveredSpecies?: string | null;
@@ -32,26 +32,37 @@ export default function ObservationMap({ observations, searchCoordinates, radius
     );
   }
 
+  // Helper functions to check observation type
+  const isGBIFObservation = (obs: iNaturalistObservation | GBIFObservation): obs is GBIFObservation => {
+    return 'key' in obs && 'decimalLatitude' in obs;
+  };
+
+  const isObscured = (obs: iNaturalistObservation | GBIFObservation): boolean => {
+    if (isGBIFObservation(obs)) {
+      return obs.coordinateUncertaintyInMeters !== undefined && obs.coordinateUncertaintyInMeters > 10000;
+    } else {
+      return !!(obs.obscured || obs.coordinates_obscured || (obs.geoprivacy && obs.geoprivacy !== 'open'));
+    }
+  };
+
+  const hasValidCoordinates = (obs: iNaturalistObservation | GBIFObservation): boolean => {
+    if (isGBIFObservation(obs)) {
+      return obs.decimalLatitude !== undefined && obs.decimalLongitude !== undefined;
+    } else {
+      if (obs.latitude && obs.longitude) return true;
+      if (obs.geojson?.coordinates && obs.geojson.coordinates.length === 2) return true;
+      return false;
+    }
+  };
+
   // Filter observations that have valid coordinates AND are not obscured
   const validObservations = observations.filter(obs => {
-    // Check if coordinates are obscured
-    const isObscured = obs.obscured || obs.coordinates_obscured || 
-                       (obs.geoprivacy && obs.geoprivacy !== 'open');
-    if (isObscured) return false;
-    
-    // Check for direct lat/lng
-    if (obs.latitude && obs.longitude) return true;
-    // Check for geojson coordinates
-    if (obs.geojson?.coordinates && obs.geojson.coordinates.length === 2) return true;
-    return false;
+    if (isObscured(obs)) return false;
+    return hasValidCoordinates(obs);
   });
 
   // Count obscured observations
-  const obscuredCount = observations.filter(obs => {
-    const isObscured = obs.obscured || obs.coordinates_obscured || 
-                       (obs.geoprivacy && obs.geoprivacy !== 'open');
-    return isObscured;
-  }).length;
+  const obscuredCount = observations.filter(obs => isObscured(obs)).length;
 
   if (!searchCoordinates) {
     return null;
@@ -127,8 +138,8 @@ export default function ObservationMap({ observations, searchCoordinates, radius
         {validObservations
           .sort((a, b) => {
             // Sort so hovered species render last (appear on top)
-            const aScientificName = a.taxon?.name || '';
-            const bScientificName = b.taxon?.name || '';
+            const aScientificName = isGBIFObservation(a) ? a.scientificName : (a.taxon?.name || '');
+            const bScientificName = isGBIFObservation(b) ? b.scientificName : (b.taxon?.name || '');
             const aIsHovered = hoveredSpecies === aScientificName;
             const bIsHovered = hoveredSpecies === bScientificName;
             
@@ -139,20 +150,28 @@ export default function ObservationMap({ observations, searchCoordinates, radius
           .map((obs, index) => {
           // Get coordinates from either direct fields or geojson
           let lat: number, lng: number;
-          if (obs.latitude && obs.longitude) {
-            lat = obs.latitude;
-            lng = obs.longitude;
-          } else if (obs.geojson?.coordinates) {
-            // GeoJSON format is [longitude, latitude]
-            lng = obs.geojson.coordinates[0];
-            lat = obs.geojson.coordinates[1];
+          if (isGBIFObservation(obs)) {
+            if (!obs.decimalLatitude || !obs.decimalLongitude) return null;
+            lat = obs.decimalLatitude;
+            lng = obs.decimalLongitude;
           } else {
-            return null; // Skip this observation
+            if (obs.latitude && obs.longitude) {
+              lat = obs.latitude;
+              lng = obs.longitude;
+            } else if (obs.geojson?.coordinates) {
+              // GeoJSON format is [longitude, latitude]
+              lng = obs.geojson.coordinates[0];
+              lat = obs.geojson.coordinates[1];
+            } else {
+              return null; // Skip this observation
+            }
           }
 
           const position: [number, number] = [lat, lng];
-          const commonName = obs.taxon?.preferred_common_name || obs.species_guess || 'Unknown species';
-          const scientificName = obs.taxon?.name || '';
+          const commonName = isGBIFObservation(obs) 
+            ? (obs.vernacularName || obs.scientificName || 'Unknown species')
+            : (obs.taxon?.preferred_common_name || obs.species_guess || 'Unknown species');
+          const scientificName = isGBIFObservation(obs) ? obs.scientificName : (obs.taxon?.name || '');
           const isHovered = hoveredSpecies === scientificName;
           const isDimmed = hoveredSpecies && !isHovered;
           
@@ -171,9 +190,11 @@ export default function ObservationMap({ observations, searchCoordinates, radius
           // If dimmed, use gray
           const displayColor = isDimmed ? '#6b7280' : color;
 
+          const obsKey = isGBIFObservation(obs) ? `gbif-${obs.key}` : `inat-${obs.id}`;
+          
           return (
             <CircleMarker
-              key={`${obs.id}-${index}`}
+              key={`${obsKey}-${index}`}
               center={position}
               radius={isHovered ? 10 : 6}
               pathOptions={{
@@ -193,11 +214,23 @@ export default function ObservationMap({ observations, searchCoordinates, radius
                       {scientificName}
                     </div>
                   )}
-                  {obs.observed_on_string && (
-                    <div style={{ fontSize: '0.875rem', color: '#666', marginBottom: '4px' }}>
-                      {obs.observed_on_string}
-                    </div>
-                  )}
+                  {(() => {
+                    if (isGBIFObservation(obs)) {
+                      const date = obs.eventDate ? obs.eventDate.split('T')[0] : 
+                        (obs.year ? `${obs.year}-${String(obs.month || 1).padStart(2, '0')}-${String(obs.day || 1).padStart(2, '0')}` : null);
+                      return date ? (
+                        <div style={{ fontSize: '0.875rem', color: '#666', marginBottom: '4px' }}>
+                          {date}
+                        </div>
+                      ) : null;
+                    } else {
+                      return obs.observed_on_string ? (
+                        <div style={{ fontSize: '0.875rem', color: '#666', marginBottom: '4px' }}>
+                          {obs.observed_on_string}
+                        </div>
+                      ) : null;
+                    }
+                  })()}
                   {obs.stateProtection && (
                     <div style={{ 
                       fontSize: '0.75rem', 
@@ -226,22 +259,43 @@ export default function ObservationMap({ observations, searchCoordinates, radius
                       SGCN
                     </div>
                   )}
-                  {obs.uri && (
-                    <a 
-                      href={obs.uri} 
-                      target="_blank" 
-                      rel="noopener noreferrer"
-                      style={{ 
-                        display: 'block',
-                        marginTop: '8px',
-                        fontSize: '0.875rem',
-                        color: '#2563eb',
-                        textDecoration: 'none',
-                      }}
-                    >
-                      View on iNaturalist →
-                    </a>
-                  )}
+                  {(() => {
+                    if (isGBIFObservation(obs)) {
+                      return obs.key ? (
+                        <a 
+                          href={`https://www.gbif.org/occurrence/${obs.key}`}
+                          target="_blank" 
+                          rel="noopener noreferrer"
+                          style={{ 
+                            display: 'block',
+                            marginTop: '8px',
+                            fontSize: '0.875rem',
+                            color: '#2563eb',
+                            textDecoration: 'none',
+                          }}
+                        >
+                          View on GBIF →
+                        </a>
+                      ) : null;
+                    } else {
+                      return obs.uri ? (
+                        <a 
+                          href={obs.uri} 
+                          target="_blank" 
+                          rel="noopener noreferrer"
+                          style={{ 
+                            display: 'block',
+                            marginTop: '8px',
+                            fontSize: '0.875rem',
+                            color: '#2563eb',
+                            textDecoration: 'none',
+                          }}
+                        >
+                          View on iNaturalist →
+                        </a>
+                      ) : null;
+                    }
+                  })()}
                 </div>
               </Popup>
             </CircleMarker>

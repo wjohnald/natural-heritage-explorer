@@ -4,12 +4,23 @@ import { useState } from 'react';
 import dynamic from 'next/dynamic';
 import AddressSearch from '@/components/AddressSearch';
 import { geocodeAddress } from '@/services/geocoding';
-import { iNaturalistObservation, Coordinates, SortField, SortOrder, ObservationResponse } from '@/types';
+import { 
+  iNaturalistObservation, 
+  GBIFObservation,
+  Coordinates, 
+  SortField, 
+  SortOrder, 
+  ObservationResponse,
+  GBIFObservationResponse 
+} from '@/types';
 import { groupObservations } from '@/utils/grouping';
+import { groupGBIFObservations } from '@/utils/gbifGrouping';
 import ObservationGroupRow from '@/components/ObservationGroupRow';
+import GBIFObservationGroupRow from '@/components/GBIFObservationGroupRow';
 import ObservationFilters from '@/components/ObservationFilters';
 import ConservationFilters from '@/components/ConservationFilters';
 import SpeciesListWrapper from '@/components/SpeciesListWrapper';
+import GBIFSpeciesListWrapper from '@/components/GBIFSpeciesListWrapper';
 
 // Dynamically import the map component to avoid SSR issues with Leaflet
 const ObservationMap = dynamic(() => import('@/components/ObservationMap'), {
@@ -25,11 +36,16 @@ const ObservationMap = dynamic(() => import('@/components/ObservationMap'), {
 
 export default function Home() {
   const [observations, setObservations] = useState<iNaturalistObservation[]>([]);
+  const [gbifObservations, setGbifObservations] = useState<GBIFObservation[]>([]);
   const [loading, setLoading] = useState(false);
+  const [gbifLoading, setGbifLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [gbifError, setGbifError] = useState<string | null>(null);
   const [searchedLocation, setSearchedLocation] = useState<string | null>(null);
   const [progressCurrent, setProgressCurrent] = useState(0);
   const [progressTotal, setProgressTotal] = useState(0);
+  const [gbifProgressCurrent, setGbifProgressCurrent] = useState(0);
+  const [gbifProgressTotal, setGbifProgressTotal] = useState(0);
   const [radius, setRadius] = useState(0.5); // Default 0.5 miles
   const [searchCoordinates, setSearchCoordinates] = useState<Coordinates | null>(null);
 
@@ -45,7 +61,7 @@ export default function Home() {
   const availableStatuses = ["Endangered", "Threatened", "Special Concern"];
   
   // Check if any observations have SGCN status
-  const hasSGCN = observations.some(obs => obs.conservationNeed);
+  const hasSGCN = observations.some(obs => obs.conservationNeed) || gbifObservations.some(obs => obs.conservationNeed);
 
   const handleStatusToggle = (status: string) => {
     setSelectedStatuses(prev => {
@@ -163,16 +179,118 @@ export default function Home() {
     });
   };
 
+  // Get filtered GBIF observations for the map
+  const getFilteredGBIFObservations = () => {
+    let filtered = gbifObservations;
+
+    // Filter by search term
+    if (filterTerm.trim()) {
+      const term = filterTerm.toLowerCase();
+      filtered = filtered.filter((obs) => {
+        const commonName = obs.vernacularName || '';
+        const scientificName = obs.scientificName || '';
+        return (
+          commonName.toLowerCase().includes(term) ||
+          scientificName.toLowerCase().includes(term)
+        );
+      });
+    }
+
+    // Filter by conservation status
+    if (selectedStatuses.size > 0 || showSGCN) {
+      filtered = filtered.filter(obs => {
+        const matchesStatus = selectedStatuses.size > 0 && 
+          obs.stateProtection && 
+          selectedStatuses.has(obs.stateProtection);
+        
+        const matchesSGCN = showSGCN && obs.conservationNeed;
+        
+        return matchesStatus || matchesSGCN;
+      });
+    }
+
+    return filtered;
+  };
+
+  const getFilteredAndSortedGBIFGroups = () => {
+    const groups = groupGBIFObservations(gbifObservations, searchCoordinates || undefined);
+
+    // Filter
+    let filtered = groups;
+
+    // Filter by search term
+    if (filterTerm.trim()) {
+      const term = filterTerm.toLowerCase();
+      filtered = filtered.filter(
+        (g) =>
+          g.commonName.toLowerCase().includes(term) ||
+          g.scientificName.toLowerCase().includes(term)
+      );
+    }
+
+    // Filter by conservation status
+    if (selectedStatuses.size > 0 || showSGCN) {
+      filtered = filtered.filter(g => {
+        const matchesStatus = selectedStatuses.size > 0 && g.observations.some(obs => 
+          obs.stateProtection && selectedStatuses.has(obs.stateProtection)
+        );
+        
+        const matchesSGCN = showSGCN && g.observations.some(obs => obs.conservationNeed);
+        
+        return matchesStatus || matchesSGCN;
+      });
+    }
+
+    // Sort
+    return filtered.sort((a, b) => {
+      let comparison = 0;
+      switch (sortBy) {
+        case 'name':
+          comparison = a.commonName.localeCompare(b.commonName);
+          break;
+        case 'count':
+          comparison = a.totalCount - b.totalCount;
+          break;
+        case 'distance':
+          comparison = a.closestDistance - b.closestDistance;
+          break;
+        case 'date':
+          if (a.mostRecentDate < b.mostRecentDate) comparison = -1;
+          if (a.mostRecentDate > b.mostRecentDate) comparison = 1;
+          break;
+        case 'status':
+          const getStatusPriority = (group: typeof a) => {
+            const obs = group.observations[0];
+            if (obs.stateProtection === 'Endangered') return 4;
+            if (obs.stateProtection === 'Threatened') return 3;
+            if (obs.stateProtection === 'Special Concern') return 2;
+            if (obs.conservationNeed) return 1;
+            return 0;
+          };
+          comparison = getStatusPriority(a) - getStatusPriority(b);
+          break;
+      }
+      return sortOrder === 'asc' ? comparison : -comparison;
+    });
+  };
+
   const filteredObservations = getFilteredObservations();
   const filteredAndSortedGroups = getFilteredAndSortedGroups();
+  const filteredGBIFObservations = getFilteredGBIFObservations();
+  const filteredAndSortedGBIFGroups = getFilteredAndSortedGBIFGroups();
 
   const handleSearch = async (address: string, searchRadius: number) => {
     setLoading(true);
+    setGbifLoading(true);
     setError(null);
+    setGbifError(null);
     setObservations([]);
+    setGbifObservations([]);
     setSearchedLocation(null);
     setProgressCurrent(0);
     setProgressTotal(0);
+    setGbifProgressCurrent(0);
+    setGbifProgressTotal(0);
 
     try {
       // Step 1: Geocode the address
@@ -181,54 +299,108 @@ export default function Home() {
       const { lat, lon } = geocodeResult.coordinates;
       setSearchCoordinates({ lat, lon });
 
-      // 2. Fetch observations sequentially
-      let currentPage = 1;
-      let hasMore = true;
-      let allObservations: iNaturalistObservation[] = [];
+      // Fetch from both sources in parallel
+      const fetchINaturalist = async () => {
+        try {
+          let currentPage = 1;
+          let hasMore = true;
+          let allObservations: iNaturalistObservation[] = [];
 
-      while (hasMore) {
-        const response = await fetch(
-          `/api/observations?lat=${lat}&lon=${lon}&radius=${searchRadius}&page=${currentPage}`
-        );
+          while (hasMore) {
+            const response = await fetch(
+              `/api/observations?lat=${lat}&lon=${lon}&radius=${searchRadius}&page=${currentPage}`
+            );
 
-        if (!response.ok) {
-          const errorData = await response.json();
-          throw new Error(errorData.error || `HTTP error! status: ${response.status}`);
+            if (!response.ok) {
+              const errorData = await response.json();
+              throw new Error(errorData.error || `HTTP error! status: ${response.status}`);
+            }
+
+            const data: ObservationResponse = await response.json();
+
+            if (data.error) {
+              throw new Error(data.error);
+            }
+
+            const newObservations = data.observations;
+            allObservations = [...allObservations, ...newObservations];
+
+            // Update state incrementally
+            setObservations(prev => [...prev, ...newObservations]);
+
+            // Update progress
+            setProgressCurrent(allObservations.length);
+            setProgressTotal(data.total_results);
+
+            // Check if we should fetch more
+            if (allObservations.length >= data.total_results || newObservations.length === 0) {
+              hasMore = false;
+            } else {
+              currentPage++;
+              await new Promise(resolve => setTimeout(resolve, 100));
+            }
+          }
+        } catch (err) {
+          setError(err instanceof Error ? err.message : 'An error occurred');
+        } finally {
+          setLoading(false);
         }
+      };
 
-        const data: ObservationResponse = await response.json();
+      const fetchGBIF = async () => {
+        try {
+          let currentPage = 1;
+          let hasMore = true;
+          let allObservations: GBIFObservation[] = [];
 
-        if (data.error) {
-          throw new Error(data.error);
+          while (hasMore) {
+            const response = await fetch(
+              `/api/gbif-observations?lat=${lat}&lon=${lon}&radius=${searchRadius}&page=${currentPage}`
+            );
+
+            if (!response.ok) {
+              const errorData = await response.json();
+              throw new Error(errorData.error || `HTTP error! status: ${response.status}`);
+            }
+
+            const data: GBIFObservationResponse = await response.json();
+
+            if (data.error) {
+              throw new Error(data.error);
+            }
+
+            const newObservations = data.observations;
+            allObservations = [...allObservations, ...newObservations];
+
+            // Update state incrementally
+            setGbifObservations(prev => [...prev, ...newObservations]);
+
+            // Update progress
+            setGbifProgressCurrent(allObservations.length);
+            setGbifProgressTotal(data.total_results);
+
+            // Check if we should fetch more
+            if (allObservations.length >= data.total_results || newObservations.length === 0) {
+              hasMore = false;
+            } else {
+              currentPage++;
+              await new Promise(resolve => setTimeout(resolve, 100));
+            }
+          }
+        } catch (err) {
+          setGbifError(err instanceof Error ? err.message : 'An error occurred');
+        } finally {
+          setGbifLoading(false);
         }
+      };
 
-        const newObservations = data.observations;
-        allObservations = [...allObservations, ...newObservations];
-
-        // Update state incrementally
-        setObservations(prev => [...prev, ...newObservations]);
-
-        // Update progress
-        setProgressCurrent(allObservations.length);
-        setProgressTotal(data.total_results);
-
-        // Check if we should fetch more
-        const totalResults = data.total_results;
-
-        if (allObservations.length >= totalResults || newObservations.length === 0) {
-          hasMore = false;
-        } else {
-          currentPage++;
-          // Optional: Add a small delay to be nice to the API if needed, though the server handles single requests fast.
-          // But since we are looping on client, we might want to yield to UI.
-          await new Promise(resolve => setTimeout(resolve, 100));
-        }
-      }
+      // Fetch from both sources in parallel
+      await Promise.all([fetchINaturalist(), fetchGBIF()]);
 
     } catch (err) {
       setError(err instanceof Error ? err.message : 'An error occurred');
-    } finally {
       setLoading(false);
+      setGbifLoading(false);
     }
   };
 
@@ -285,7 +457,7 @@ export default function Home() {
             </div>
           )}
 
-          {observations.length > 0 && (availableStatuses.length > 0 || hasSGCN) && (
+          {(observations.length > 0 || gbifObservations.length > 0) && (availableStatuses.length > 0 || hasSGCN) && (
             <ConservationFilters
               availableStatuses={availableStatuses}
               selectedStatuses={selectedStatuses}
@@ -296,7 +468,7 @@ export default function Home() {
             />
           )}
 
-          {observations.length > 0 && (
+          {(observations.length > 0 || gbifObservations.length > 0) && (
             <div style={{ marginTop: '2rem' }}>
               <ObservationFilters
                 searchTerm={filterTerm}
@@ -315,47 +487,53 @@ export default function Home() {
         {/* Right Column - Results */}
         <div className="results-column">
           <div className="results-container">
-            {loading && observations.length === 0 ? (
+            {(loading && observations.length === 0 && gbifObservations.length === 0) ? (
               <div className="loading-container">
                 <div className="loading-spinner">
                   <div className="spinner"></div>
                 </div>
-                <p className="loading-text">
-                  {progressTotal && progressCurrent
-                    ? `Loading observations... ${progressCurrent} of ${progressTotal}`
-                    : 'Searching for observations...'}
-                </p>
+                <p className="loading-text">Searching for observations...</p>
               </div>
-            ) : observations.length > 0 ? (
+            ) : (observations.length > 0 || gbifObservations.length > 0) ? (
               <div className="observations-section">
                 <div className="observations-header">
                   <h2 className="observations-title">
-                    {loading && progressTotal ? (
+                    {(loading || gbifLoading) ? (
                       <>
-                        Showing {observations.length.toLocaleString()} of {progressTotal.toLocaleString()} observation{progressTotal !== 1 ? 's' : ''}
-                        <span className="loading-badge">
-                          Loading...
-                        </span>
+                        Loading observations...
+                        {loading && progressTotal > 0 && (
+                          <span style={{ fontSize: '0.875rem', marginLeft: '0.5rem' }}>
+                            (iNaturalist: {observations.length.toLocaleString()}/{progressTotal.toLocaleString()})
+                          </span>
+                        )}
+                        {gbifLoading && gbifProgressTotal > 0 && (
+                          <span style={{ fontSize: '0.875rem', marginLeft: '0.5rem' }}>
+                            (GBIF: {gbifObservations.length.toLocaleString()}/{gbifProgressTotal.toLocaleString()})
+                          </span>
+                        )}
                       </>
                     ) : (
-                      <>Found {observations.length.toLocaleString()} observation{observations.length !== 1 ? 's' : ''}</>
+                      <>
+                        Found {(observations.length + gbifObservations.length).toLocaleString()} total observation{(observations.length + gbifObservations.length) !== 1 ? 's' : ''}
+                      </>
                     )}
                   </h2>
                 </div>
 
                 <ObservationMap
-                  observations={filteredObservations}
+                  observations={[...filteredObservations, ...filteredGBIFObservations]}
                   searchCoordinates={searchCoordinates || undefined}
                   radius={radius}
                   hoveredSpecies={hoveredSpecies}
                 />
 
-                <div className="observations-list">
-                  {filteredAndSortedGroups.length > 0 ? (
+                <div className="observations-list" style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
+                  {/* iNaturalist Data Source */}
+                  {filteredAndSortedGroups.length > 0 && (
                     <SpeciesListWrapper groups={filteredAndSortedGroups}>
                       {filteredAndSortedGroups.map((group, index) => (
                         <ObservationGroupRow
-                          key={`${group.scientificName}-${index}`}
+                          key={`inat-${group.scientificName}-${index}`}
                           group={group}
                           searchCoordinates={searchCoordinates || undefined}
                           onHover={(scientificName) => setHoveredSpecies(scientificName)}
@@ -367,11 +545,37 @@ export default function Home() {
                           <div className="loading-spinner">
                             <div className="spinner"></div>
                           </div>
-                          <p className="loading-text">Loading more species...</p>
+                          <p className="loading-text">Loading more iNaturalist species...</p>
                         </div>
                       )}
                     </SpeciesListWrapper>
-                  ) : (
+                  )}
+
+                  {/* GBIF Data Source */}
+                  {filteredAndSortedGBIFGroups.length > 0 && (
+                    <GBIFSpeciesListWrapper groups={filteredAndSortedGBIFGroups}>
+                      {filteredAndSortedGBIFGroups.map((group, index) => (
+                        <GBIFObservationGroupRow
+                          key={`gbif-${group.scientificName}-${index}`}
+                          group={group}
+                          searchCoordinates={searchCoordinates || undefined}
+                          onHover={(scientificName) => setHoveredSpecies(scientificName)}
+                          onHoverEnd={() => setHoveredSpecies(null)}
+                        />
+                      ))}
+                      {gbifLoading && (
+                        <div className="loading-more">
+                          <div className="loading-spinner">
+                            <div className="spinner"></div>
+                          </div>
+                          <p className="loading-text">Loading more GBIF species...</p>
+                        </div>
+                      )}
+                    </GBIFSpeciesListWrapper>
+                  )}
+
+                  {/* Empty state when filters return no results */}
+                  {filteredAndSortedGroups.length === 0 && filteredAndSortedGBIFGroups.length === 0 && (
                     <div className="empty-state" style={{ padding: '2rem' }}>
                       <p className="text-secondary">No species match your filter.</p>
                     </div>
@@ -408,6 +612,15 @@ export default function Home() {
             className="footer-link"
           >
             iNaturalist
+          </a>
+          {' and '}
+          <a
+            href="https://www.gbif.org"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="footer-link"
+          >
+            GBIF
           </a>
           {' • '}
           Geocoding by{' '}
