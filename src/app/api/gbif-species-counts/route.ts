@@ -40,6 +40,7 @@ export async function GET(request: NextRequest) {
             geometry: geometry,
             limit: '0', // We only want facets
             facet: 'speciesKey',
+            facetLimit: '1000', // Request up to 1000 species (default is only 10)
             hasCoordinate: 'true',
             hasGeospatialIssue: 'false',
         });
@@ -71,7 +72,33 @@ export async function GET(request: NextRequest) {
                 const speciesData = await speciesResponse.json();
 
                 const scientificName = speciesData.scientificName;
-                const vernacularName = speciesData.vernacularName || speciesData.canonicalName || scientificName;
+
+                // Fetch vernacular names (common names) from dedicated endpoint
+                let vernacularName = speciesData.canonicalName || scientificName;
+                try {
+                    const vernacularResponse = await fetch(`${GBIF_API_BASE}/species/${speciesKey}/vernacularNames`);
+                    if (vernacularResponse.ok) {
+                        const vernacularData = await vernacularResponse.json();
+
+                        // Filter for English names and prefer "preferred" names
+                        const englishNames = vernacularData.results?.filter(
+                            (v: any) => v.language === 'en' || v.language === 'eng'
+                        ) || [];
+
+                        if (englishNames.length > 0) {
+                            // Look for preferred name first
+                            const preferredName = englishNames.find((v: any) => v.isPreferred);
+                            if (preferredName) {
+                                vernacularName = preferredName.vernacularName;
+                            } else {
+                                // Otherwise use the first English name
+                                vernacularName = englishNames[0].vernacularName;
+                            }
+                        }
+                    }
+                } catch (vernacularErr) {
+                    console.log(`Could not fetch vernacular names for ${speciesKey}, using canonical name`);
+                }
 
                 // Clean scientific name (remove author names)
                 const cleanName = scientificName.split(/[,(]/)[0].trim();

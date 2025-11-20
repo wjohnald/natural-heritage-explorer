@@ -752,30 +752,6 @@ export default function Home() {
               }}
             />
           </div>
-
-          {/* Species List Sidebar */}
-          {searchedLocation && !error && (
-            <SidebarSpeciesList
-              coordinates={searchCoordinates}
-              radius={radius}
-              filterTerm={filterTerm}
-              selectedStatuses={selectedStatuses}
-              selectedVernalPoolStatuses={selectedVernalPoolStatuses}
-              showSGCN={showSGCN}
-            />
-          )}
-
-          {/* GBIF Species List Sidebar */}
-          {searchedLocation && !error && (
-            <SidebarGBIFSpeciesList
-              coordinates={searchCoordinates}
-              radius={radius}
-              filterTerm={filterTerm}
-              selectedStatuses={selectedStatuses}
-              selectedVernalPoolStatuses={selectedVernalPoolStatuses}
-              showSGCN={showSGCN}
-            />
-          )}
         </div>
 
         {/* Right Column - Map and Results */}
