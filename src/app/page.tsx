@@ -9,6 +9,7 @@ import { groupObservations } from '@/utils/grouping';
 import ObservationGroupRow from '@/components/ObservationGroupRow';
 import ObservationFilters from '@/components/ObservationFilters';
 import ConservationFilters from '@/components/ConservationFilters';
+import SpeciesListWrapper from '@/components/SpeciesListWrapper';
 
 // Dynamically import the map component to avoid SSR issues with Leaflet
 const ObservationMap = dynamic(() => import('@/components/ObservationMap'), {
@@ -351,7 +352,7 @@ export default function Home() {
 
                 <div className="observations-list">
                   {filteredAndSortedGroups.length > 0 ? (
-                    <>
+                    <SpeciesListWrapper groups={filteredAndSortedGroups}>
                       {filteredAndSortedGroups.map((group, index) => (
                         <ObservationGroupRow
                           key={`${group.scientificName}-${index}`}
@@ -369,7 +370,7 @@ export default function Home() {
                           <p className="loading-text">Loading more species...</p>
                         </div>
                       )}
-                    </>
+                    </SpeciesListWrapper>
                   ) : (
                     <div className="empty-state" style={{ padding: '2rem' }}>
                       <p className="text-secondary">No species match your filter.</p>
