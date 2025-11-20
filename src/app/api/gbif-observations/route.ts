@@ -202,7 +202,7 @@ async function fetchGBIFPage(
             console.log(`[GBIF] Error details:`, err.message);
             
             await new Promise(resolve => setTimeout(resolve, delay));
-            return fetchGBIFPage(lat, lon, radiusDegrees, offset, retryCount + 1);
+            return fetchGBIFPage(lat, lon, radiusDegrees, offset, scientificName, retryCount + 1);
         }
 
         // If max retries reached, provide a helpful error message
