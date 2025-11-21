@@ -236,7 +236,38 @@ async function getParcelGeometry(address: string): Promise<any> {
             return data.features[0];
         }
 
-        throw new Error('No parcel found at this address');
+        // Fallback: Try buffering the point by 15 meters (approx 50 feet)
+        // This helps when the geocoded point is on a road centerline
+        console.log('No exact match, trying buffer search...');
+        const bufferParams = new URLSearchParams({
+            f: 'json',
+            geometry: JSON.stringify({
+                x: lon,
+                y: lat,
+                spatialReference: { wkid: 4326 }
+            }),
+            geometryType: 'esriGeometryPoint',
+            spatialRel: 'esriSpatialRelIntersects',
+            distance: '15',
+            units: 'esriSRUnit_Meter',
+            returnGeometry: 'true',
+            outFields: 'PRINT_KEY,COUNTY_NAME,MUNI_NAME,PARCEL_ADDR,ACRES',
+        });
+
+        const bufferResponse = await fetch(`${parcelServiceUrl}?${bufferParams}`);
+
+        if (!bufferResponse.ok) {
+            throw new Error(`Failed to fetch parcel data (buffer): ${bufferResponse.status} ${bufferResponse.statusText}`);
+        }
+
+        const bufferData = await bufferResponse.json();
+
+        if (bufferData.features && bufferData.features.length > 0) {
+            console.log(`Found ${bufferData.features.length} parcels in buffer, using first one`);
+            return bufferData.features[0];
+        }
+
+        throw new Error('No parcel found at this address (even with buffer)');
     } catch (error) {
         console.error('Error getting parcel geometry:', error);
         throw error;
