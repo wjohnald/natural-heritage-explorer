@@ -11,16 +11,30 @@ import { ParcelScorer } from '@/services/scoring/parcel-scorer';
  */
 
 // Get parcel geometry from NYS Tax Parcels service
-async function getParcelGeometry(address: string): Promise<any> {
+async function getParcelGeometry(address?: string, lat?: number, lon?: number): Promise<any> {
     try {
-        // First geocode the address to get coordinates
-        const geocodeResult = await geocodeAddress(address);
+        let finalLat: number;
+        let finalLon: number;
 
-        if (!geocodeResult.coordinates || !geocodeResult.coordinates.lat || !geocodeResult.coordinates.lon) {
-            throw new Error('Failed to geocode address');
+        // If coordinates provided directly, use them (for map clicks)
+        if (lat !== undefined && lon !== undefined) {
+            finalLat = lat;
+            finalLon = lon;
         }
+        // Otherwise geocode the address
+        else if (address) {
+            const geocodeResult = await geocodeAddress(address);
 
-        const { lat, lon } = geocodeResult.coordinates;
+            if (!geocodeResult.coordinates || !geocodeResult.coordinates.lat || !geocodeResult.coordinates.lon) {
+                throw new Error('Failed to geocode address');
+            }
+
+            finalLat = geocodeResult.coordinates.lat;
+            finalLon = geocodeResult.coordinates.lon;
+        }
+        else {
+            throw new Error('Either address or coordinates must be provided');
+        }
 
         // Query NYS Tax Parcels to find parcel containing this point
         // Using ShareGIS NYS Tax Parcels Public service (correct URL)
@@ -30,8 +44,8 @@ async function getParcelGeometry(address: string): Promise<any> {
         const params = new URLSearchParams({
             f: 'json',
             geometry: JSON.stringify({
-                x: lon,
-                y: lat,
+                x: finalLon,
+                y: finalLat,
                 spatialReference: { wkid: 4326 }
             }),
             geometryType: 'esriGeometryPoint',
@@ -58,8 +72,8 @@ async function getParcelGeometry(address: string): Promise<any> {
         const bufferParams = new URLSearchParams({
             f: 'json',
             geometry: JSON.stringify({
-                x: lon,
-                y: lat,
+                x: finalLon,
+                y: finalLat,
                 spatialReference: { wkid: 4326 }
             }),
             geometryType: 'esriGeometryPoint',
@@ -94,16 +108,21 @@ export async function GET(request: Request) {
     try {
         const { searchParams } = new URL(request.url);
         const address = searchParams.get('address');
+        const latParam = searchParams.get('lat');
+        const lonParam = searchParams.get('lon');
 
-        if (!address) {
+        const lat = latParam ? parseFloat(latParam) : undefined;
+        const lon = lonParam ? parseFloat(lonParam) : undefined;
+
+        if (!address && (!lat || !lon)) {
             return NextResponse.json(
-                { error: 'Address parameter is required' },
+                { error: 'Either address or lat/lon coordinates are required' },
                 { status: 400 }
             );
         }
 
         // Get parcel geometry
-        const parcel = await getParcelGeometry(address);
+        const parcel = await getParcelGeometry(address || undefined, lat, lon);
 
         if (!parcel || !parcel.geometry) {
             return NextResponse.json(

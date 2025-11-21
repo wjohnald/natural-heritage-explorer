@@ -347,15 +347,9 @@ function ParcelScoreHandler({ enabled, onParcelSelected }: { enabled: boolean; o
         // Notify start of loading
         onParcelSelected(null, true, null);
 
-        // Fetch parcel info
-        const geocodeUrl = `https://nominatim.openstreetmap.org/reverse?format=json&lat=${e.latlng.lat}&lon=${e.latlng.lng}`;
-        const geocodeResponse = await fetch(geocodeUrl);
-        const geocodeData = await geocodeResponse.json();
-        const address = geocodeData.display_name;
-
-        // Call parcel scoring API
+        // Call parcel scoring API directly with coordinates (no geocoding)
         const scoreResponse = await fetch(
-          `/api/score-parcel?address=${encodeURIComponent(address)}`
+          `/api/score-parcel?lat=${e.latlng.lat}&lon=${e.latlng.lng}`
         );
         const scoreData = await scoreResponse.json();
 
