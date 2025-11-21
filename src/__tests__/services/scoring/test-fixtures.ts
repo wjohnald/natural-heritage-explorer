@@ -1,10 +1,14 @@
 /**
  * Test addresses for integration testing
- * These addresses will be used to fetch real parcel geometry from NYS Tax Parcels service
+ * These addresses will be used to fetch REAL parcel geometry from NYS Tax Parcels API
+ * 
+ * Philosophy: We don't run a GIS system - we use data from public APIs.
+ * Tests should use real parcel geometry fetched from public services, not mocked data.
  */
 
-// 789 Lapla Road, Accord, NY
+// 789 Lapla Road, Marbletown, NY
 // Note: Has Class C stream (not Class A), should return false for DEC Class A Streams criterion
+// This is a real property that can be used for general testing
 export const ADDRESS_789_LAPLA_ROAD = '789 Lapla Road, Marbletown, NY';
 
 // 281 DeWitt Road, Olivebridge, NY  

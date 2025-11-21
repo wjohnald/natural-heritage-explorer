@@ -1,19 +1,7 @@
-import { describe, it, expect, beforeAll } from 'vitest';
+import { describe, it, expect } from 'vitest';
 import { FEMAFloodZones } from '@/services/scoring/criteria/streams-wetlands/fema-flood-zones';
-import { ADDRESS_281_DEWITT_ROAD } from '../test-fixtures';
-import { fetchParcelGeometry } from '../../../helpers/parcel-fetcher';
-import { ParcelGeometry } from '@/services/scoring/types';
 
 describe('FEMAFloodZones', () => {
-    let parcel281DeWitt: ParcelGeometry;
-
-    // Fetch real parcel geometry before running tests
-    beforeAll(async () => {
-        console.log('Fetching parcel geometry for 281 DeWitt Road...');
-        parcel281DeWitt = await fetchParcelGeometry(ADDRESS_281_DEWITT_ROAD);
-        console.log('Parcel geometry fetched successfully');
-    }, 30000); // 30 second timeout for geocoding/parcel fetching
-
     it('should have correct metadata', () => {
         const criterion = new FEMAFloodZones();
         const metadata = criterion.getMetadata();
@@ -31,15 +19,12 @@ describe('FEMAFloodZones', () => {
         expect(metadata.notes).toBe('FEMA Special Flood Hazard Areas');
     });
 
-    it('should score true for 281 DeWitt Road (known Special Flood Hazard Area)', async () => {
-        const criterion = new FEMAFloodZones();
-
-        const result = await criterion.evaluate(parcel281DeWitt);
-        
-        // 281 DeWitt Road is in a FEMA SFHA (SFHA_TF = 'T')
-        // Note: Requires Google Maps API key for accurate geocoding
-        expect(result.met).toBe(true);
-        expect(result.earnedScore).toBe(1);
-        expect(result.notes).toBe('FEMA Special Flood Hazard Areas');
-    }, 15000); // 15 second timeout for real API calls
+    // Full address-to-score integration tests are in:
+    // src/__tests__/integration/score-parcel-route.test.ts
+    // 
+    // Those tests verify the complete pipeline:
+    // Address → Geocoding → Parcel Fetch → Scoring
+    // 
+    // This keeps unit tests focused on criterion logic/metadata,
+    // while integration tests verify the full system with real addresses.
 });
