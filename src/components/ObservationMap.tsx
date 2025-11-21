@@ -330,6 +330,28 @@ function ParcelScoreHandler({ enabled }: { enabled: boolean }) {
   const map = useMap();
   const [parcelPopup, setParcelPopup] = useState<L.Popup | null>(null);
 
+  // Helper to get color from yellow to maroon based on percentage
+  const getScoreColor = (percentage: number) => {
+    // Maroon is #800000 (128, 0, 0)
+    // Yellow is #FFFF00 (255, 255, 0)
+
+    // We want 0% = Yellow, 100% = Maroon
+    // R: 255 -> 128
+    // G: 255 -> 0
+    // B: 0 -> 0
+
+    const r = Math.round(255 - (percentage / 100) * (255 - 128));
+    const g = Math.round(255 - (percentage / 100) * 255);
+    const b = 0;
+
+    return `rgb(${r}, ${g}, ${b})`;
+  };
+
+  // Helper to get text color (black for light backgrounds, white for dark)
+  const getTextColor = (percentage: number) => {
+    return percentage > 50 ? '#ffffff' : '#000000';
+  };
+
   useEffect(() => {
     if (!enabled) return;
 
@@ -390,7 +412,6 @@ function ParcelScoreHandler({ enabled }: { enabled: boolean }) {
         const scorePercent = scoreData.maxPossibleScore > 0
           ? Math.round((scoreData.totalScore / scoreData.maxPossibleScore) * 100)
           : 0;
-        const scoreColor = scorePercent > 50 ? '#10b981' : scorePercent > 25 ? '#f59e0b' : '#ef4444';
 
         let content = `
           <div style="padding: 0.5rem; max-width: 450px;">
@@ -412,53 +433,73 @@ function ParcelScoreHandler({ enabled }: { enabled: boolean }) {
           `;
         }
 
-        // Score display
+        // Score display with Graphic Indicator (Total Score text removed)
         content += `
-          <div style="margin-bottom: 0.75rem;">
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
-              <span style="font-weight: 600;">Total Score:</span>
-              <span style="font-size: 1.25rem; font-weight: 700; color: ${scoreColor};">
-                ${scoreData.totalScore} / ${scoreData.maxPossibleScore}
-              </span>
+          <div style="margin-bottom: 1rem; padding: 1rem; background: #f9fafb; border-radius: 0.5rem; border: 1px solid #e5e7eb;">
+            <!-- Graphic Indicator Bar -->
+            <div style="position: relative; height: 24px; background: linear-gradient(to right, #ffff00, #800000); border-radius: 12px; border: 1px solid #d1d5db; margin-bottom: 0.5rem;">
+              <div style="position: absolute; left: ${Math.max(2, Math.min(98, scorePercent))}%; top: 50%; transform: translate(-50%, -50%); width: 4px; height: 32px; background: #000; border: 1px solid white; box-shadow: 0 1px 3px rgba(0,0,0,0.3);"></div>
             </div>
-            <div style="width: 100%; height: 8px; background: #e5e7eb; border-radius: 4px; overflow: hidden;">
-              <div style="width: ${scorePercent}%; height: 100%; background: ${scoreColor}; transition: width 0.3s;"></div>
-            </div>
-            <div style="text-align: right; font-size: 0.75rem; color: var(--text-secondary); margin-top: 0.25rem;">
-              ${scorePercent}% of maximum possible score
+            <div style="display: flex; justify-content: space-between; font-size: 0.75rem; color: #6b7280;">
+              <span>Low Value</span>
+              <span>High Value</span>
             </div>
           </div>
         `;
 
-        // Criteria matched list
-        if (scoreData.criteriaMatched && scoreData.criteriaMatched.length > 0) {
+        // Category Breakdown
+        if (scoreData.criteriaSummary && scoreData.criteriaSummary.length > 0) {
+          // Calculate category scores
+          const byCategory: Record<string, { earned: number, max: number }> = {};
+
+          scoreData.criteriaSummary.forEach((c: any) => {
+            if (!byCategory[c.category]) {
+              byCategory[c.category] = { earned: 0, max: 0 };
+            }
+            byCategory[c.category].earned += c.earnedScore;
+            byCategory[c.category].max += c.maxScore;
+          });
+
           content += `
-            <div style="margin-bottom: 0.75rem;">
-              <div style="font-weight: 600; margin-bottom: 0.25rem;">✓ Criteria Matched (${scoreData.criteriaMatched.length}):</div>
-              <ul style="margin: 0; padding-left: 1.25rem; font-size: 0.8125rem;">
-                ${scoreData.criteriaMatched.map((c: string) => `<li>${c}</li>`).join('')}
-              </ul>
-            </div>
+            <div style="margin-bottom: 1rem;">
+              <h4 style="font-size: 0.875rem; font-weight: 600; margin-bottom: 0.5rem; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.05em;">Category Breakdown</h4>
+              <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem;">
           `;
-        } else {
+
+          Object.entries(byCategory).forEach(([category, scores]) => {
+            const catPercent = scores.max > 0 ? (scores.earned / scores.max) * 100 : 0;
+            const indicatorColor = getScoreColor(catPercent);
+
+            content += `
+              <div style="display: flex; align-items: center; justify-content: space-between; padding: 0.5rem; background: #fff; border-radius: 0.375rem; border: 1px solid #e5e7eb;">
+                <div style="display: flex; align-items: center; gap: 0.5rem; overflow: hidden;">
+                  <div style="flex-shrink: 0; width: 12px; height: 12px; border-radius: 50%; background-color: ${indicatorColor}; border: 1px solid rgba(0,0,0,0.1);"></div>
+                  <div style="font-size: 0.75rem; font-weight: 600; color: #4b5563; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${category}</div>
+                </div>
+                <div style="font-size: 0.875rem; font-weight: 700; color: #800000; margin-left: 0.5rem;">
+                  ${scores.earned} <span style="font-size: 0.75rem; font-weight: 400; color: #9ca3af;">/ ${scores.max}</span>
+                </div>
+              </div>
+            `;
+          });
+
           content += `
-            <div style="margin-bottom: 0.75rem; padding: 0.5rem; background: #fee; border-left: 3px solid ${scoreColor}; font-size: 0.8125rem;">
-              This parcel does not meet any of the implemented conservation criteria.
+              </div>
             </div>
           `;
         }
 
-        // Detailed summary
+        // Detailed summary (Collapsible)
         if (scoreData.criteriaSummary && scoreData.criteriaSummary.length > 0) {
           content += `
             <details style="margin-top: 0.75rem; border-top: 1px solid var(--border-color); padding-top: 0.75rem;">
               <summary style="cursor: pointer; font-weight: 600; font-size: 0.8125rem; color: var(--text-secondary); user-select: none;">
-                📊 Detailed Criteria Summary (${scoreData.criteriaSummary.length} total)
+                📊 Detailed Criteria Checklist
               </summary>
-              <div style="margin-top: 0.5rem; max-height: 300px; overflow-y: auto;">
+              <div style="margin-top: 0.5rem; max-height: 200px; overflow-y: auto;">
           `;
 
-          // Group by category
+          // Group by category for the detailed list
           const byCategory: Record<string, any[]> = {};
           scoreData.criteriaSummary.forEach((c: any) => {
             if (!byCategory[c.category]) byCategory[c.category] = [];
@@ -466,26 +507,24 @@ function ParcelScoreHandler({ enabled }: { enabled: boolean }) {
           });
 
           Object.entries(byCategory).forEach(([category, criteria]) => {
-            const categoryScore = criteria.reduce((sum, c) => sum + c.earnedScore, 0);
-            const categoryMax = criteria.reduce((sum, c) => sum + c.maxScore, 0);
-
             content += `
               <div style="margin-bottom: 0.75rem;">
-                <div style="font-weight: 600; font-size: 0.8125rem; margin-bottom: 0.25rem; color: var(--text-primary);">
-                  ${category} (${categoryScore}/${categoryMax} pts)
+                <div style="font-weight: 600; font-size: 0.75rem; margin-bottom: 0.25rem; color: var(--text-secondary); background: #f3f4f6; padding: 2px 6px; border-radius: 4px; display: inline-block;">
+                  ${category}
                 </div>
                 <div style="font-size: 0.75rem;">
             `;
 
             criteria.forEach((c: any) => {
-              const icon = c.matched ? '✓' : c.implemented ? '○' : '⊘';
-              const color = c.matched ? '#10b981' : c.implemented ? '#6b7280' : '#d1d5db';
-              const label = c.implemented ? '' : ' (not implemented)';
+              const icon = c.matched ? '✅' : c.implemented ? '❌' : '⚪';
+              const color = c.matched ? '#059669' : c.implemented ? '#9ca3af' : '#d1d5db';
+              const label = c.implemented ? '' : ' (data unavailable)';
+              const weight = c.matched ? '600' : '400';
 
               content += `
-                <div style="display: flex; justify-content: space-between; padding: 0.125rem 0; color: ${color};">
-                  <span>${icon} ${c.name}${label}</span>
-                  <span>${c.earnedScore}/${c.maxScore}</span>
+                <div style="display: flex; justify-content: space-between; padding: 0.125rem 0; color: ${color}; font-weight: ${weight};">
+                  <span style="flex: 1; padding-right: 0.5rem;">${icon} ${c.name}${label}</span>
+                  <span>${c.earnedScore}</span>
                 </div>
               `;
             });
