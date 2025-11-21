@@ -1,198 +1,14 @@
 import { NextResponse } from 'next/server';
 import { geocodeAddress } from '@/services/server-geocoding';
+import { ParcelScorer } from '@/services/scoring/parcel-scorer';
 
 /**
  * Parcel Scoring API
  * 
- * This API scores parcels based on conservation value using multiple criteria categories:
- * - Drinking Water, Wildlife Habitat, Forests and Woodlands, Streams and Wetlands,
- * - Recreation and Trails, Scenic Areas, Historic and Cultural, Agricultural
- * 
- * ARCHITECTURE:
- * - Tier 1 (Implemented): Criteria queryable via public REST APIs (real-time)
- * - Tier 2 (Unimplemented): Criteria requiring static data files (shapefiles)
- *   that need to be obtained, hosted, and converted to queryable services
- * 
- * TO ADD MISSING CRITERIA:
- * 1. Obtain data files from sources listed in parcel_scoring_methodology.csv
- * 2. Upload to ArcGIS Online or local PostGIS database
- * 3. Move criterion from unimplementedCriteria to SCORING_CRITERIA array
- * 4. Add serviceUrl (and optional buffer/layers parameters)
- * 5. Update scoring_criteria_status.md
- * 
- * See: parcel_scoring_methodology.csv for complete data source information
+ * This API scores parcels based on conservation value using multiple criteria categories.
+ * It uses the ParcelScorer service for implemented criteria and appends unimplemented criteria
+ * for frontend display.
  */
-
-// Scoring criteria with service URLs (REST API queryable)
-const SCORING_CRITERIA = [
-    {
-        category: 'Drinking Water',
-        name: 'EPA Principal Aquifers',
-        score: 1,
-        serviceUrl: 'https://geopub.epa.gov/arcgis/rest/services/NEPAssist/Water/MapServer/6',
-    },
-    {
-        category: 'Wildlife Habitat',
-        name: 'DEC SBAs',
-        score: 1,
-        serviceUrl: 'https://gisservices.dec.ny.gov/arcgis/rest/services/hvnrm/hvnrm_biodiversity/MapServer/8',
-    },
-    {
-        category: 'Wildlife Habitat',
-        name: 'NYNHP Important Areas for Rare Animals',
-        score: 1,
-        serviceUrl: 'https://gisservices.dec.ny.gov/arcgis/rest/services/hvnrm/hvnrm_biodiversity/MapServer',
-        layers: [0, 1, 2, 3], // Multiple animal-related layers
-    },
-    {
-        category: 'Wildlife Habitat',
-        name: 'Audubon IBAs',
-        score: 1,
-        serviceUrl: 'https://gisservices.dec.ny.gov/arcgis/rest/services/hvnrm/hvnrm_biodiversity/MapServer/9',
-    },
-    {
-        category: 'Wildlife Habitat',
-        name: 'NYNHP Significant Communities',
-        score: 1,
-        serviceUrl: 'https://gisservices.dec.ny.gov/arcgis/rest/services/hvnrm/hvnrm_biodiversity/MapServer/7',
-    },
-    {
-        category: 'Wildlife Habitat',
-        name: 'Wetland with 300\' buffer',
-        score: 1,
-        serviceUrl: 'https://gisservices.dec.ny.gov/arcgis/rest/services/erm/informational_freshwater_wetlands/MapServer/0',
-        buffer: 300, // feet
-    },
-    {
-        category: 'Forests and Woodlands',
-        name: 'NYNHP Important Areas for Rare Plants',
-        score: 1,
-        serviceUrl: 'https://gisservices.dec.ny.gov/arcgis/rest/services/hvnrm/hvnrm_biodiversity/MapServer/1',
-    },
-    {
-        category: 'Streams and Wetlands',
-        name: 'Wetland with 100\' buffer',
-        score: 1,
-        serviceUrl: 'https://gisservices.dec.ny.gov/arcgis/rest/services/erm/informational_freshwater_wetlands/MapServer/0',
-        buffer: 100, // feet
-    },
-    {
-        category: 'Streams and Wetlands',
-        name: 'NYNHP Important Areas for Fish',
-        score: 1,
-        serviceUrl: 'https://gisservices.dec.ny.gov/arcgis/rest/services/hvnrm/hvnrm_biodiversity/MapServer',
-        layers: [5, 6], // Fish and coldwater stream layers
-    },
-    {
-        category: 'Agricultural',
-        name: 'Agricultural District',
-        score: 1,
-        serviceUrl: 'https://gisservices.its.ny.gov/arcgis/rest/services/AgDistricts_2017/MapServer/0',
-    },
-    // Recently added criteria (public REST APIs)
-    {
-        category: 'Streams and Wetlands',
-        name: 'FEMA Flood Hazard Areas',
-        score: 1,
-        serviceUrl: 'https://hazards.fema.gov/gis/nfhl/rest/services/public/NFHL/MapServer/28', // Special Flood Hazard Areas
-    },
-    {
-        category: 'Agricultural',
-        name: 'Prime or Statewide Important Farmland Soils',
-        score: 2,
-        serviceUrl: 'https://landscape11.arcgis.com/arcgis/rest/services/USA_Soils_Map_Units/MapServer/0',
-        notes: 'Query for mukey then check if Prime Farmland or Statewide Important',
-    },
-    {
-        category: 'Streams and Wetlands',
-        name: 'NRCS Hydric Soils',
-        score: 1,
-        serviceUrl: 'https://landscape11.arcgis.com/arcgis/rest/services/USA_Soils_Map_Units/MapServer/0',
-        notes: 'Query for mukey then check hydric rating',
-    },
-    {
-        category: 'Forests and Woodlands',
-        name: 'Adjacent to protected land',
-        score: 1,
-        serviceUrl: 'https://services1.arcgis.com/ERdCHt0GP5kZ89ro/arcgis/rest/services/PAD_US3_0Combined/FeatureServer/0',
-        buffer: 0, // Check for adjacency (touching)
-    },
-    {
-        category: 'Recreation and Trails',
-        name: 'Adjacent to protected lands',
-        score: 1.5,
-        serviceUrl: 'https://services1.arcgis.com/ERdCHt0GP5kZ89ro/arcgis/rest/services/PAD_US3_0Combined/FeatureServer/0',
-        buffer: 0, // Check for adjacency (touching)
-    },
-    {
-        category: 'Agricultural',
-        name: 'Adjacent to protected land',
-        score: 1,
-        serviceUrl: 'https://services1.arcgis.com/ERdCHt0GP5kZ89ro/arcgis/rest/services/PAD_US3_0Combined/FeatureServer/0',
-        buffer: 0, // Check for adjacency (touching)
-    },
-];
-
-// Helper to query ArcGIS feature service
-async function queryFeatureService(
-    serviceUrl: string,
-    geometry: any,
-    layerId?: number
-): Promise<boolean> {
-    try {
-        const url = layerId !== undefined
-            ? `${serviceUrl}/${layerId}/query`
-            : `${serviceUrl}/query`;
-
-        // Extract geometry and spatial reference from parcel feature
-        const geom = geometry;
-        const sr = geometry.spatialReference || { wkid: 3857 };
-
-        const params = new URLSearchParams({
-            f: 'json',
-            geometry: JSON.stringify(geom),
-            geometryType: 'esriGeometryPolygon',
-            inSR: sr.wkid?.toString() || '3857',
-            spatialRel: 'esriSpatialRelIntersects',
-            returnGeometry: 'false',
-            returnCountOnly: 'true',
-        });
-
-        // Use POST to handle large geometries
-        const response = await fetch(url, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/x-www-form-urlencoded',
-            },
-            body: params.toString(),
-        });
-
-        if (!response.ok) {
-            console.error(`HTTP error querying ${serviceUrl}: ${response.status} ${response.statusText}`);
-            return false;
-        }
-
-        const text = await response.text();
-        try {
-            const data = JSON.parse(text);
-
-            if (data.error) {
-                console.error(`Query error for ${serviceUrl}:`, data.error);
-                return false;
-            }
-
-            return data.count > 0;
-        } catch (e) {
-            console.error(`Invalid JSON from ${serviceUrl}:`, text.substring(0, 100));
-            return false;
-        }
-    } catch (error) {
-        console.error(`Error querying ${serviceUrl}:`, error);
-        return false;
-    }
-}
-
-
 
 // Get parcel geometry from NYS Tax Parcels service
 async function getParcelGeometry(address: string): Promise<any> {
@@ -296,60 +112,10 @@ export async function GET(request: Request) {
             );
         }
 
-        // Score breakdown by category
-        const breakdown: Record<string, { score: number; criteria: string[] }> = {};
-        let totalScore = 0;
-        const detailsMatched: string[] = [];
-        const criteriaSummary: Array<{
-            name: string;
-            category: string;
-            maxScore: number;
-            earnedScore: number;
-            matched: boolean;
-            implemented: boolean;
-            dataSource?: string;
-            notes?: string;
-        }> = [];
-
-        // Query each criterion
-        for (const criterion of SCORING_CRITERIA) {
-            let met = false;
-
-            if (criterion.layers) {
-                // Query multiple layers
-                for (const layerId of criterion.layers) {
-                    const baseUrl = criterion.serviceUrl.split('/MapServer')[0] + '/MapServer';
-                    if (await queryFeatureService(baseUrl, parcel.geometry, layerId)) {
-                        met = true;
-                        break;
-                    }
-                }
-            } else {
-                // Single layer query
-                met = await queryFeatureService(criterion.serviceUrl, parcel.geometry);
-            }
-
-            if (met) {
-                totalScore += criterion.score;
-                detailsMatched.push(criterion.name);
-
-                if (!breakdown[criterion.category]) {
-                    breakdown[criterion.category] = { score: 0, criteria: [] };
-                }
-                breakdown[criterion.category].score += criterion.score;
-                breakdown[criterion.category].criteria.push(criterion.name);
-            }
-
-            // Add to summary
-            criteriaSummary.push({
-                name: criterion.name,
-                category: criterion.category,
-                maxScore: criterion.score,
-                earnedScore: met ? criterion.score : 0,
-                matched: met,
-                implemented: true,
-            });
-        }
+        // Calculate Scores using ParcelScorer service
+        console.log('Starting modular parcel scoring...');
+        const scorer = new ParcelScorer();
+        const scoreResult = await scorer.scoreParcel(parcel.geometry);
 
         // Add unimplemented criteria (require static data files not available via public REST API)
         // See parcel_scoring_methodology.csv for data source details
@@ -386,6 +152,8 @@ export async function GET(request: Request) {
             { category: 'Agricultural', name: 'Century Farms', score: 1, dataSource: 'NYS Ag & Markets' },
         ];
 
+        const criteriaSummary = [...scoreResult.breakdown];
+
         for (const criterion of unimplementedCriteria) {
             criteriaSummary.push({
                 name: criterion.name,
@@ -399,6 +167,21 @@ export async function GET(request: Request) {
             });
         }
 
+        // Reconstruct breakdown object for compatibility
+        const breakdown: Record<string, { score: number; criteria: string[] }> = {};
+        const detailsMatched: string[] = [];
+
+        for (const item of scoreResult.breakdown) {
+            if (item.matched) {
+                if (!breakdown[item.category]) {
+                    breakdown[item.category] = { score: 0, criteria: [] };
+                }
+                breakdown[item.category].score += item.earnedScore;
+                breakdown[item.category].criteria.push(item.name);
+                detailsMatched.push(item.name);
+            }
+        }
+
         return NextResponse.json({
             parcelInfo: {
                 address: parcel.attributes?.PARCEL_ADDR,
@@ -407,8 +190,8 @@ export async function GET(request: Request) {
                 acres: parcel.attributes?.ACRES,
                 printKey: parcel.attributes?.PRINT_KEY,
             },
-            totalScore,
-            maxPossibleScore: criteriaSummary.reduce((sum, c) => sum + c.maxScore, 0),
+            totalScore: scoreResult.totalScore,
+            maxPossibleScore: criteriaSummary.reduce((sum, c) => sum + (c.maxScore || c.score || 0), 0),
             breakdown,
             criteriaMatched: detailsMatched,
             criteriaSummary,

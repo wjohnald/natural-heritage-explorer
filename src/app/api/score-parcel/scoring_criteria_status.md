@@ -12,7 +12,7 @@ This checklist tracks the implementation status of all scoring criteria defined 
 - [x] EPA Principal Aquifers
 - [ ] Bedrock Aquifers (Vly School Rondout) *(awaiting data: NYS GIS Clearinghouse)*
 - [ ] Ashokan Watershed *(awaiting data: NYS Open Data Portal)*
-- [ ] DEC Class A Streams outside of Ashokan Watershed *(awaiting data: DEC Streams Layer)*
+- [x] DEC Class A Streams outside of Ashokan Watershed *(using NYS DEC Water Quality Classifications REST service)*
 
 ## Wildlife Habitat
 - [x] DEC SBAs
@@ -46,7 +46,7 @@ This checklist tracks the implementation status of all scoring criteria defined 
 - [ ] Adjacent to Existing Trails *(awaiting data: DEC or Parks data)*
 - [ ] Adjacent to Mohonk Preserve *(awaiting data: Contact Mohonk Preserve)*
 - [ ] Within potential trail connection area *(requires custom analysis)*
-- [ ] Within 1 mile of hamlet centers *(awaiting data: Census TIGER data)*
+- [x] Within 1 mile of hamlet centers *(using NYS Place Points REST service)*
 
 ## Scenic Areas
 - [ ] Adjacent to SMSB *(awaiting data: NYS DOT or tourism data)*
@@ -56,7 +56,7 @@ This checklist tracks the implementation status of all scoring criteria defined 
 - [ ] Gateway areas *(requires custom analysis)*
 
 ## Historic and Cultural
-- [ ] Designated Historic Sites and Districts OR Houses built prior to 1900 *(awaiting data: NPS National Register)*
+- [x] Designated Historic Sites and Districts *(using NYS OPRHP National Register Building Listings REST service)*
 - [ ] Historic Marker sites *(awaiting data: State Historic Preservation Office)*
 - [ ] Adjacent to D&H Canal *(awaiting data: Historical canal routes)*
 - [ ] Adjacent to Special Properties *(requires custom list)*
