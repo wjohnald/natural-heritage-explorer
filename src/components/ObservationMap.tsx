@@ -138,9 +138,7 @@ function WetlandInfoHandler({ enabled }: { enabled: boolean }) {
         map.removeLayer(wetlandPopup);
       }
     };
-
-    if (!enabled) return;
-  }, [map, wetlandPopup]);
+  }, [map, enabled]);
 
   return null;
 }
@@ -1011,6 +1009,22 @@ export default function ObservationMap({ observations, searchCoordinates, radius
             </>
           )}
 
+          {/* Conditionally render Tax Parcel Layer - Bottom overlay */}
+          {showParcels && (
+            <WMSTileLayer
+              key={`tax-parcels-${selectedBasemap}`}
+              url="https://gisservices.its.ny.gov/arcgis/services/NYS_Tax_Parcels_Public/MapServer/WMSServer"
+              layers="0"
+              format="image/png"
+              transparent={true}
+              version="1.3.0"
+              attribution='<a href="https://gis.ny.gov/" target="_blank">NYS Tax Parcels</a>'
+              opacity={0.7}
+              maxZoom={22}
+              maxNativeZoom={19}
+            />
+          )}
+
           {/* Conditionally render NWI Layer */}
           {showNWI && (
             <WMSTileLayer
@@ -1022,22 +1036,6 @@ export default function ObservationMap({ observations, searchCoordinates, radius
               version="1.1.1"
               attribution='<a href="https://www.fws.gov/program/national-wetlands-inventory" target="_blank">USFWS National Wetlands Inventory</a>'
               opacity={0.6}
-              maxZoom={22}
-              maxNativeZoom={19}
-            />
-          )}
-
-          {/* Conditionally render Tax Parcel Layer */}
-          {showParcels && (
-            <WMSTileLayer
-              key={`tax-parcels-${selectedBasemap}`}
-              url="https://gisservices.its.ny.gov/arcgis/services/NYS_Tax_Parcels_Public/MapServer/WMSServer"
-              layers="0"
-              format="image/png"
-              transparent={true}
-              version="1.3.0"
-              attribution='<a href="https://gis.ny.gov/" target="_blank">NYS Tax Parcels</a>'
-              opacity={0.7}
               maxZoom={22}
               maxNativeZoom={19}
             />
