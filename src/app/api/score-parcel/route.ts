@@ -210,6 +210,7 @@ export async function GET(request: Request) {
                 printKey: parcel.attributes?.PRINT_KEY,
                 owner: parcel.attributes?.PRIMARY_OWNER,
             },
+            parcelGeometry: parcel.geometry,
             totalScore: scoreResult.totalScore,
             maxPossibleScore: criteriaSummary.reduce((sum, c) => sum + (c.maxScore || c.score || 0), 0),
             breakdown,

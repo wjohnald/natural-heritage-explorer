@@ -826,6 +826,7 @@ function HomeContent() {
               radius={radius}
               hoveredSpecies={hoveredSpecies}
               onParcelSelected={handleParcelSelected}
+              parcelScoreData={parcelScoreData}
             />
           </Suspense>
         </div>

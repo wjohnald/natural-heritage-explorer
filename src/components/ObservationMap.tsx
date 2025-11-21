@@ -1,10 +1,11 @@
 'use client';
 
 import { useEffect, useState, useMemo } from 'react';
-import { MapContainer, TileLayer, WMSTileLayer, CircleMarker, Popup, Circle, useMapEvents, LayersControl, useMap } from 'react-leaflet';
+import { MapContainer, TileLayer, WMSTileLayer, CircleMarker, Popup, Circle, Polygon, useMapEvents, LayersControl, useMap } from 'react-leaflet';
 import { iNaturalistObservation, GBIFObservation, Coordinates } from '@/types';
 import L from 'leaflet';
 import * as Esri from 'esri-leaflet';
+import { webMercatorToLatLon } from '@/utils/coordinate-conversion';
 import 'leaflet/dist/leaflet.css';
 import 'leaflet-geometryutil';
 
@@ -14,6 +15,7 @@ interface ObservationMapProps {
   radius?: number; // in miles
   hoveredSpecies?: string | null;
   onParcelSelected?: (data: any, loading: boolean, error: string | null) => void;
+  parcelScoreData?: any;
 }
 
 type BasemapType = 'topo' | 'street' | 'satellite';
@@ -377,11 +379,44 @@ function ParcelScoreHandler({ enabled, onParcelSelected }: { enabled: boolean; o
   return null;
 }
 
+// Component to render selected parcel polygon overlay
+function SelectedParcelPolygon({ parcelScoreData }: { parcelScoreData: any }) {
+  if (!parcelScoreData || !parcelScoreData.parcelGeometry) return null;
+
+  const geometry = parcelScoreData.parcelGeometry;
+  const scorePercent = parcelScoreData.maxPossibleScore > 0
+    ? (parcelScoreData.totalScore / parcelScoreData.maxPossibleScore) * 100
+    : 0;
+
+  // Calculate color from yellow to maroon based on score percentage
+  const r = Math.round(255 - (scorePercent / 100) * (255 - 128));
+  const g = Math.round(255 - (scorePercent / 100) * 255);
+  const b = 0;
+  const color = `rgb(${r}, ${g}, ${b})`;
+
+  // Convert ArcGIS rings from Web Mercator (EPSG:3857) to WGS84 lat/lon (EPSG:4326)
+  const positions: L.LatLngExpression[][] = geometry.rings.map((ring: number[][]) =>
+    ring.map(([x, y]) => webMercatorToLatLon(x, y) as L.LatLngExpression)
+  );
+
+  return (
+    <Polygon
+      positions={positions}
+      pathOptions={{
+        color: color,
+        fillColor: color,
+        fillOpacity: 0.75,
+        weight: 3,
+        opacity: 1
+      }}
+    />
+  );
+}
 
 
 const MILES_TO_METERS = 1609.34;
 
-export default function ObservationMap({ observations, searchCoordinates, radius = 0.5, hoveredSpecies, onParcelSelected }: ObservationMapProps) {
+export default function ObservationMap({ observations, searchCoordinates, radius = 0.5, hoveredSpecies, onParcelSelected, parcelScoreData }: ObservationMapProps) {
   const [isMounted, setIsMounted] = useState(false);
   const [selectedBasemap, setSelectedBasemap] = useState<BasemapType>('topo');
   const [showNWI, setShowNWI] = useState(false);
@@ -1040,6 +1075,9 @@ export default function ObservationMap({ observations, searchCoordinates, radius
                 </CircleMarker>
               );
             })}
+
+          {/* Selected parcel polygon overlay - rendered last to appear on top */}
+          <SelectedParcelPolygon parcelScoreData={parcelScoreData} />
         </MapContainer>
       </div>
 
