@@ -18,10 +18,10 @@ export class DECClassAStreams extends BaseCriterion {
         // Layer 9: DEC Stream Classification and Trout Status
         // Field: CLASSIFICA contains values like 'A', 'A-S', 'AA', 'AA-S'
         // A = Class A, AA = Class AA (highest quality), -S = Special designation
-        // Note: Streams are line geometries, so we buffer the parcel to catch streams on/adjacent to property
+        // Note: Streams are line geometries, buffer catches streams on or near property
         return this.defaultEvaluation(geometry, {
             whereClause: "CLASSIFICA IN ('A', 'A-S', 'AA', 'AA-S') OR CLASSIFICA LIKE 'AA%' OR CLASSIFICA LIKE 'A-%'",
-            buffer: 100 // 100 feet buffer - standard riparian buffer distance
+            buffer: 500 // 500 feet buffer - wider riparian buffer for drinking water protection zones
         });
     }
 }
