@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useMemo } from 'react';
 import { MapContainer, TileLayer, WMSTileLayer, CircleMarker, Popup, Circle, useMapEvents, LayersControl, useMap } from 'react-leaflet';
 import { iNaturalistObservation, GBIFObservation, Coordinates } from '@/types';
 import L from 'leaflet';
@@ -599,6 +599,12 @@ export default function ObservationMap({ observations, searchCoordinates, radius
   const [showParcels, setShowParcels] = useState(true);
   const [showInfoWetlands, setShowInfoWetlands] = useState(true);
 
+  // Memoize center to prevent unnecessary map re-centering
+  const center: [number, number] = useMemo(() =>
+    searchCoordinates ? [searchCoordinates.lat, searchCoordinates.lon] : [0, 0],
+    [searchCoordinates?.lat, searchCoordinates?.lon]
+  );
+
   // Prevent hydration errors by only rendering map on client side
   useEffect(() => {
     setIsMounted(true);
@@ -651,8 +657,6 @@ export default function ObservationMap({ observations, searchCoordinates, radius
   if (!searchCoordinates) {
     return null;
   }
-
-  const center: [number, number] = [searchCoordinates.lat, searchCoordinates.lon];
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
