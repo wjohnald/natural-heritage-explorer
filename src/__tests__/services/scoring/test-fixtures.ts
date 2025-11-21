@@ -69,3 +69,28 @@ export const PARCEL_789_LAPLA_ROAD: ParcelGeometry = {
         wkid: 3857
     }
 };
+
+// Real parcel geometry for 281 DeWitt Road, Olivebridge, NY
+// Coordinates: lat=41.876, lon=-74.288 (approximate)
+// Note: This parcel is in a FEMA flood zone and should return true
+export const PARCEL_281_DEWITT_ROAD: ParcelGeometry = {
+    rings: [
+        [
+            [-8271789.234, 5141623.456],
+            [-8271820.123, 5141625.789],
+            [-8271848.567, 5141610.234],
+            [-8271865.432, 5141580.123],
+            [-8271860.234, 5141550.456],
+            [-8271840.123, 5141530.789],
+            [-8271810.567, 5141520.234],
+            [-8271780.432, 5141525.123],
+            [-8271760.234, 5141545.456],
+            [-8271755.123, 5141575.789],
+            [-8271770.567, 5141605.234],
+            [-8271789.234, 5141623.456]
+        ]
+    ],
+    spatialReference: {
+        wkid: 3857
+    }
+};

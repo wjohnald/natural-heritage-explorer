@@ -22,8 +22,8 @@ This document summarizes the scoring criteria that were just implemented using p
 ## Implementation Details
 
 ### 1. FEMA Flood Hazard Areas
-- **Service URL**: `https://hazards.fema.gov/gis/nfhl/rest/services/public/NFHL/MapServer/28`
-- **Layer**: Special Flood Hazard Areas
+- **Service URL**: `https://hazards.fema.gov/arcgis/rest/services/public/NFHL/MapServer/28`
+- **Layer**: FEMA Flood Hazard Zones (Layer 28)
 - **Method**: Direct spatial intersection query
 - **Category**: Streams and Wetlands
 - **Score**: 1 point

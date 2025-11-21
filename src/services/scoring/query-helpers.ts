@@ -119,6 +119,14 @@ export async function queryFeatureService(
             params.append('where', whereClause);
         }
 
+        // Debug logging for FEMA specifically
+        if (url.includes('fema.gov')) {
+            console.log('[FEMA QUERY DEBUG] URL:', url);
+            console.log('[FEMA QUERY DEBUG] Spatial Reference:', sr.wkid);
+            console.log('[FEMA QUERY DEBUG] Geometry rings count:', queryGeometry.rings?.length);
+            console.log('[FEMA QUERY DEBUG] First ring points:', queryGeometry.rings?.[0]?.length);
+        }
+
         // Use POST to handle large geometries
         const response = await fetch(url, {
             method: 'POST',
@@ -140,6 +148,14 @@ export async function queryFeatureService(
             if (data.error) {
                 console.error(`Query error for ${serviceUrl}:`, data.error);
                 return false;
+            }
+
+            // Debug logging for FEMA specifically
+            if (url.includes('fema.gov')) {
+                console.log('[FEMA QUERY DEBUG] Response count:', data.count);
+                if (data.count === 0) {
+                    console.log('[FEMA QUERY DEBUG] No features found - property may not be in flood zone');
+                }
             }
 
             if (buffer !== undefined) {
