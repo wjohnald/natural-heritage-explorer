@@ -2,6 +2,7 @@ import { ParcelGeometry } from '@/services/scoring/types';
 
 // Real parcel geometry for 789 Lapla Road, Accord, NY
 // Fetched from NYS Tax Parcels service via debug endpoint
+// Note: This parcel has a Class C stream (not Class A), should return false for Class A criterion
 export const PARCEL_789_LAPLA_ROAD: ParcelGeometry = {
     rings: [
         [
@@ -88,6 +89,33 @@ export const PARCEL_281_DEWITT_ROAD: ParcelGeometry = {
             [-8271755.123, 5141575.789],
             [-8271770.567, 5141605.234],
             [-8271789.234, 5141623.456]
+        ]
+    ],
+    spatialReference: {
+        wkid: 3857
+    }
+};
+
+// Real parcel geometry for 15 Ronsen Rd / Rt 28 B, Olive, NY
+// Address in tax records: 4115-4125 Rt 28
+// Note: This parcel has Class A streams (segment 862-555) and should return true
+export const PARCEL_15_RONSEN_ROAD: ParcelGeometry = {
+    rings: [
+        [
+            [-8267459.581900001, 5162185.233099997],
+            [-8267427.202500001, 5162114.983099997],
+            [-8267469.375700001, 5162099.162600003],
+            [-8267455.3506000005, 5162060.712800004],
+            [-8267520.079399999, 5162035.653499998],
+            [-8267545.9871, 5162025.733900003],
+            [-8267569.0262, 5162077.422899999],
+            [-8267571.810699999, 5162085.082000002],
+            [-8267589.3868, 5162133.324600004],
+            [-8267590.6532000005, 5162151.491599999],
+            [-8267582.8467999995, 5162166.620300002],
+            [-8267525.274900001, 5162163.802000001],
+            [-8267503.700999999, 5162171.2885000035],
+            [-8267459.581900001, 5162185.233099997]
         ]
     ],
     spatialReference: {
