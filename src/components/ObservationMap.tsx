@@ -584,9 +584,9 @@ const MILES_TO_METERS = 1609.34;
 export default function ObservationMap({ observations, searchCoordinates, radius = 0.5, hoveredSpecies }: ObservationMapProps) {
   const [isMounted, setIsMounted] = useState(false);
   const [selectedBasemap, setSelectedBasemap] = useState<BasemapType>('topo');
-  const [showNWI, setShowNWI] = useState(true);
-  const [showParcels, setShowParcels] = useState(false);
-  const [showInfoWetlands, setShowInfoWetlands] = useState(false);
+  const [showNWI, setShowNWI] = useState(false);
+  const [showParcels, setShowParcels] = useState(true);
+  const [showInfoWetlands, setShowInfoWetlands] = useState(true);
 
   // Prevent hydration errors by only rendering map on client side
   useEffect(() => {
@@ -644,8 +644,302 @@ export default function ObservationMap({ observations, searchCoordinates, radius
   const center: [number, number] = [searchCoordinates.lat, searchCoordinates.lon];
 
   return (
-    <div style={{ marginBottom: '2rem' }}>
-      <div className="map-wrapper" style={{ position: 'relative' }}>
+    <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
+      {/* Map Control Panel - Above the map */}
+      <div style={{
+        marginBottom: '0.75rem',
+        background: 'var(--bg-primary)',
+        padding: '0.75rem 1rem',
+        borderRadius: '0.5rem',
+        border: '1px solid var(--border-color)',
+        boxShadow: '0 1px 2px rgba(0,0,0,0.05)',
+      }}>
+        <div style={{ display: 'flex', gap: '1.5rem', alignItems: 'center', flexWrap: 'wrap' }}>
+          {/* Basemap Selection */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+            <span style={{
+              fontSize: '0.8125rem',
+              fontWeight: 600,
+              color: 'var(--text-secondary)',
+              textTransform: 'uppercase',
+              letterSpacing: '0.025em',
+            }}>
+              Basemap:
+            </span>
+            <div style={{ display: 'flex', gap: '0.5rem' }}>
+              <button
+                onClick={() => setSelectedBasemap('topo')}
+                style={{
+                  padding: '0.375rem 0.75rem',
+                  background: selectedBasemap === 'topo' ? '#2563eb' : 'white',
+                  color: selectedBasemap === 'topo' ? 'white' : '#374151',
+                  border: '1.5px solid',
+                  borderColor: selectedBasemap === 'topo' ? '#2563eb' : '#d1d5db',
+                  borderRadius: '0.375rem',
+                  fontSize: '0.8125rem',
+                  cursor: 'pointer',
+                  fontWeight: 600,
+                  transition: 'all 0.2s',
+                  boxShadow: selectedBasemap === 'topo' ? '0 1px 3px rgba(37, 99, 235, 0.3)' : 'none',
+                  whiteSpace: 'nowrap',
+                }}
+                onMouseEnter={(e) => {
+                  if (selectedBasemap !== 'topo') {
+                    e.currentTarget.style.borderColor = '#9ca3af';
+                    e.currentTarget.style.background = '#f9fafb';
+                  }
+                }}
+                onMouseLeave={(e) => {
+                  if (selectedBasemap !== 'topo') {
+                    e.currentTarget.style.borderColor = '#d1d5db';
+                    e.currentTarget.style.background = 'white';
+                  }
+                }}
+              >
+                🗺️ Topo
+              </button>
+              <button
+                onClick={() => setSelectedBasemap('street')}
+                style={{
+                  padding: '0.375rem 0.75rem',
+                  background: selectedBasemap === 'street' ? '#2563eb' : 'white',
+                  color: selectedBasemap === 'street' ? 'white' : '#374151',
+                  border: '1.5px solid',
+                  borderColor: selectedBasemap === 'street' ? '#2563eb' : '#d1d5db',
+                  borderRadius: '0.375rem',
+                  fontSize: '0.8125rem',
+                  cursor: 'pointer',
+                  fontWeight: 600,
+                  transition: 'all 0.2s',
+                  boxShadow: selectedBasemap === 'street' ? '0 1px 3px rgba(37, 99, 235, 0.3)' : 'none',
+                  whiteSpace: 'nowrap',
+                }}
+                onMouseEnter={(e) => {
+                  if (selectedBasemap !== 'street') {
+                    e.currentTarget.style.borderColor = '#9ca3af';
+                    e.currentTarget.style.background = '#f9fafb';
+                  }
+                }}
+                onMouseLeave={(e) => {
+                  if (selectedBasemap !== 'street') {
+                    e.currentTarget.style.borderColor = '#d1d5db';
+                    e.currentTarget.style.background = 'white';
+                  }
+                }}
+              >
+                🛣️ Street
+              </button>
+              <button
+                onClick={() => setSelectedBasemap('satellite')}
+                style={{
+                  padding: '0.375rem 0.75rem',
+                  background: selectedBasemap === 'satellite' ? '#2563eb' : 'white',
+                  color: selectedBasemap === 'satellite' ? 'white' : '#374151',
+                  border: '1.5px solid',
+                  borderColor: selectedBasemap === 'satellite' ? '#2563eb' : '#d1d5db',
+                  borderRadius: '0.375rem',
+                  fontSize: '0.8125rem',
+                  cursor: 'pointer',
+                  fontWeight: 600,
+                  transition: 'all 0.2s',
+                  boxShadow: selectedBasemap === 'satellite' ? '0 1px 3px rgba(37, 99, 235, 0.3)' : 'none',
+                  whiteSpace: 'nowrap',
+                }}
+                onMouseEnter={(e) => {
+                  if (selectedBasemap !== 'satellite') {
+                    e.currentTarget.style.borderColor = '#9ca3af';
+                    e.currentTarget.style.background = '#f9fafb';
+                  }
+                }}
+                onMouseLeave={(e) => {
+                  if (selectedBasemap !== 'satellite') {
+                    e.currentTarget.style.borderColor = '#d1d5db';
+                    e.currentTarget.style.background = 'white';
+                  }
+                }}
+              >
+                🛰️ Satellite
+              </button>
+            </div>
+          </div>
+
+          {/* Divider */}
+          <div style={{
+            width: '1px',
+            height: '1.5rem',
+            background: 'var(--border-color)',
+          }} />
+
+          {/* Layer Overlays Toggle */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+            <span style={{
+              fontSize: '0.8125rem',
+              fontWeight: 600,
+              color: 'var(--text-secondary)',
+              textTransform: 'uppercase',
+              letterSpacing: '0.025em',
+            }}>
+              Overlays:
+            </span>
+            <button
+              onClick={() => setShowNWI(!showNWI)}
+              style={{
+                padding: '0.375rem 0.75rem',
+                background: showNWI ? '#10b981' : 'white',
+                color: showNWI ? 'white' : '#374151',
+                border: '1.5px solid',
+                borderColor: showNWI ? '#10b981' : '#d1d5db',
+                borderRadius: '0.375rem',
+                fontSize: '0.8125rem',
+                cursor: 'pointer',
+                fontWeight: 600,
+                transition: 'all 0.2s',
+                boxShadow: showNWI ? '0 1px 3px rgba(16, 185, 129, 0.3)' : 'none',
+                whiteSpace: 'nowrap',
+              }}
+              onMouseEnter={(e) => {
+                if (!showNWI) {
+                  e.currentTarget.style.borderColor = '#9ca3af';
+                  e.currentTarget.style.background = '#f9fafb';
+                }
+              }}
+              onMouseLeave={(e) => {
+                if (!showNWI) {
+                  e.currentTarget.style.borderColor = '#d1d5db';
+                  e.currentTarget.style.background = 'white';
+                }
+              }}
+            >
+              {showNWI ? '✓' : '○'} Wetlands
+            </button>
+            <button
+              onClick={() => setShowParcels(!showParcels)}
+              style={{
+                padding: '0.375rem 0.75rem',
+                background: showParcels ? '#10b981' : 'white',
+                color: showParcels ? 'white' : '#374151',
+                border: '1.5px solid',
+                borderColor: showParcels ? '#10b981' : '#d1d5db',
+                borderRadius: '0.375rem',
+                fontSize: '0.8125rem',
+                cursor: 'pointer',
+                fontWeight: 600,
+                transition: 'all 0.2s',
+                boxShadow: showParcels ? '0 1px 3px rgba(16, 185, 129, 0.3)' : 'none',
+                whiteSpace: 'nowrap',
+              }}
+              onMouseEnter={(e) => {
+                if (!showParcels) {
+                  e.currentTarget.style.borderColor = '#9ca3af';
+                  e.currentTarget.style.background = '#f9fafb';
+                }
+              }}
+              onMouseLeave={(e) => {
+                if (!showParcels) {
+                  e.currentTarget.style.borderColor = '#d1d5db';
+                  e.currentTarget.style.background = 'white';
+                }
+              }}
+            >
+              {showParcels ? '✓' : '○'} Tax Parcels
+            </button>
+            <button
+              onClick={() => setShowInfoWetlands(!showInfoWetlands)}
+              style={{
+                padding: '0.375rem 0.75rem',
+                background: showInfoWetlands ? '#10b981' : 'white',
+                color: showInfoWetlands ? 'white' : '#374151',
+                border: '1.5px solid',
+                borderColor: showInfoWetlands ? '#10b981' : '#d1d5db',
+                borderRadius: '0.375rem',
+                fontSize: '0.8125rem',
+                cursor: 'pointer',
+                fontWeight: 600,
+                transition: 'all 0.2s',
+                boxShadow: showInfoWetlands ? '0 1px 3px rgba(16, 185, 129, 0.3)' : 'none',
+                whiteSpace: 'nowrap',
+              }}
+              onMouseEnter={(e) => {
+                if (!showInfoWetlands) {
+                  e.currentTarget.style.borderColor = '#9ca3af';
+                  e.currentTarget.style.background = '#f9fafb';
+                }
+              }}
+              onMouseLeave={(e) => {
+                if (!showInfoWetlands) {
+                  e.currentTarget.style.borderColor = '#d1d5db';
+                  e.currentTarget.style.background = 'white';
+                }
+              }}
+            >
+              {showInfoWetlands ? '✓' : '○'} DEC Wetlands
+            </button>
+          </div>
+        </div>
+      </div>
+
+      {totalObservations > 0 && (
+        <div style={{
+          marginBottom: '0.75rem',
+          padding: '0.875rem 1.25rem',
+          background: 'var(--bg-secondary)',
+          border: '1px solid var(--border-color)',
+          borderRadius: '0.75rem',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          gap: '1rem',
+          color: 'var(--text-secondary)',
+          fontSize: '0.9rem',
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+            <svg
+              style={{ width: '1.25rem', height: '1.25rem', color: 'var(--accent-primary)', flexShrink: 0 }}
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"
+              />
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"
+              />
+            </svg>
+            <span>
+              <strong style={{ color: 'var(--text-primary)' }}>{plotted}</strong> of <strong style={{ color: 'var(--text-primary)' }}>{totalObservations}</strong> observations plotted on map
+            </span>
+          </div>
+          {obscuredCount > 0 && (
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+              <svg
+                style={{ width: '1rem', height: '1rem', color: 'var(--color-accent)', flexShrink: 0 }}
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"
+                />
+              </svg>
+              <span style={{ fontSize: '0.85rem' }}>
+                {obscuredCount} obscured
+              </span>
+            </div>
+          )}
+        </div>
+      )}
+
+      <div className="map-wrapper" style={{ position: 'relative', flex: 1, minHeight: 0 }}>
         {/* Info hint */}
         <div style={{
           position: 'absolute',
@@ -666,7 +960,7 @@ export default function ObservationMap({ observations, searchCoordinates, radius
         <MapContainer
           center={center}
           zoom={13}
-          style={{ height: '600px', width: '100%', borderRadius: '0.5rem', cursor: 'pointer' }}
+          style={{ height: '100%', width: '100%', borderRadius: '0.5rem', cursor: 'pointer' }}
           scrollWheelZoom={true}
         >
           <WetlandInfoHandler enabled={showNWI} />
@@ -944,298 +1238,7 @@ export default function ObservationMap({ observations, searchCoordinates, radius
         </MapContainer>
       </div>
 
-      {/* Map Control Panel - Below the map */}
-      <div style={{
-        marginTop: '0.75rem',
-        background: 'var(--bg-primary)',
-        padding: '0.75rem 1rem',
-        borderRadius: '0.5rem',
-        border: '1px solid var(--border-color)',
-        boxShadow: '0 1px 2px rgba(0,0,0,0.05)',
-      }}>
-        <div style={{ display: 'flex', gap: '1.5rem', alignItems: 'center', flexWrap: 'wrap' }}>
-          {/* Basemap Selection */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-            <span style={{
-              fontSize: '0.8125rem',
-              fontWeight: 600,
-              color: 'var(--text-secondary)',
-              textTransform: 'uppercase',
-              letterSpacing: '0.025em',
-            }}>
-              Basemap:
-            </span>
-            <div style={{ display: 'flex', gap: '0.5rem' }}>
-              <button
-                onClick={() => setSelectedBasemap('topo')}
-                style={{
-                  padding: '0.375rem 0.75rem',
-                  background: selectedBasemap === 'topo' ? '#2563eb' : 'white',
-                  color: selectedBasemap === 'topo' ? 'white' : '#374151',
-                  border: '1.5px solid',
-                  borderColor: selectedBasemap === 'topo' ? '#2563eb' : '#d1d5db',
-                  borderRadius: '0.375rem',
-                  fontSize: '0.8125rem',
-                  cursor: 'pointer',
-                  fontWeight: 600,
-                  transition: 'all 0.2s',
-                  boxShadow: selectedBasemap === 'topo' ? '0 1px 3px rgba(37, 99, 235, 0.3)' : 'none',
-                  whiteSpace: 'nowrap',
-                }}
-                onMouseEnter={(e) => {
-                  if (selectedBasemap !== 'topo') {
-                    e.currentTarget.style.borderColor = '#9ca3af';
-                    e.currentTarget.style.background = '#f9fafb';
-                  }
-                }}
-                onMouseLeave={(e) => {
-                  if (selectedBasemap !== 'topo') {
-                    e.currentTarget.style.borderColor = '#d1d5db';
-                    e.currentTarget.style.background = 'white';
-                  }
-                }}
-              >
-                🗺️ Topo
-              </button>
-              <button
-                onClick={() => setSelectedBasemap('street')}
-                style={{
-                  padding: '0.375rem 0.75rem',
-                  background: selectedBasemap === 'street' ? '#2563eb' : 'white',
-                  color: selectedBasemap === 'street' ? 'white' : '#374151',
-                  border: '1.5px solid',
-                  borderColor: selectedBasemap === 'street' ? '#2563eb' : '#d1d5db',
-                  borderRadius: '0.375rem',
-                  fontSize: '0.8125rem',
-                  cursor: 'pointer',
-                  fontWeight: 600,
-                  transition: 'all 0.2s',
-                  boxShadow: selectedBasemap === 'street' ? '0 1px 3px rgba(37, 99, 235, 0.3)' : 'none',
-                  whiteSpace: 'nowrap',
-                }}
-                onMouseEnter={(e) => {
-                  if (selectedBasemap !== 'street') {
-                    e.currentTarget.style.borderColor = '#9ca3af';
-                    e.currentTarget.style.background = '#f9fafb';
-                  }
-                }}
-                onMouseLeave={(e) => {
-                  if (selectedBasemap !== 'street') {
-                    e.currentTarget.style.borderColor = '#d1d5db';
-                    e.currentTarget.style.background = 'white';
-                  }
-                }}
-              >
-                🛣️ Street
-              </button>
-              <button
-                onClick={() => setSelectedBasemap('satellite')}
-                style={{
-                  padding: '0.375rem 0.75rem',
-                  background: selectedBasemap === 'satellite' ? '#2563eb' : 'white',
-                  color: selectedBasemap === 'satellite' ? 'white' : '#374151',
-                  border: '1.5px solid',
-                  borderColor: selectedBasemap === 'satellite' ? '#2563eb' : '#d1d5db',
-                  borderRadius: '0.375rem',
-                  fontSize: '0.8125rem',
-                  cursor: 'pointer',
-                  fontWeight: 600,
-                  transition: 'all 0.2s',
-                  boxShadow: selectedBasemap === 'satellite' ? '0 1px 3px rgba(37, 99, 235, 0.3)' : 'none',
-                  whiteSpace: 'nowrap',
-                }}
-                onMouseEnter={(e) => {
-                  if (selectedBasemap !== 'satellite') {
-                    e.currentTarget.style.borderColor = '#9ca3af';
-                    e.currentTarget.style.background = '#f9fafb';
-                  }
-                }}
-                onMouseLeave={(e) => {
-                  if (selectedBasemap !== 'satellite') {
-                    e.currentTarget.style.borderColor = '#d1d5db';
-                    e.currentTarget.style.background = 'white';
-                  }
-                }}
-              >
-                🛰️ Satellite
-              </button>
-            </div>
-          </div>
 
-          {/* Divider */}
-          <div style={{
-            width: '1px',
-            height: '1.5rem',
-            background: 'var(--border-color)',
-          }} />
-
-          {/* Layer Overlays Toggle */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-            <span style={{
-              fontSize: '0.8125rem',
-              fontWeight: 600,
-              color: 'var(--text-secondary)',
-              textTransform: 'uppercase',
-              letterSpacing: '0.025em',
-            }}>
-              Overlays:
-            </span>
-            <button
-              onClick={() => setShowNWI(!showNWI)}
-              style={{
-                padding: '0.375rem 0.75rem',
-                background: showNWI ? '#10b981' : 'white',
-                color: showNWI ? 'white' : '#374151',
-                border: '1.5px solid',
-                borderColor: showNWI ? '#10b981' : '#d1d5db',
-                borderRadius: '0.375rem',
-                fontSize: '0.8125rem',
-                cursor: 'pointer',
-                fontWeight: 600,
-                transition: 'all 0.2s',
-                boxShadow: showNWI ? '0 1px 3px rgba(16, 185, 129, 0.3)' : 'none',
-                whiteSpace: 'nowrap',
-              }}
-              onMouseEnter={(e) => {
-                if (!showNWI) {
-                  e.currentTarget.style.borderColor = '#9ca3af';
-                  e.currentTarget.style.background = '#f9fafb';
-                }
-              }}
-              onMouseLeave={(e) => {
-                if (!showNWI) {
-                  e.currentTarget.style.borderColor = '#d1d5db';
-                  e.currentTarget.style.background = 'white';
-                }
-              }}
-            >
-              {showNWI ? '✓' : '○'} Wetlands
-            </button>
-            <button
-              onClick={() => setShowParcels(!showParcels)}
-              style={{
-                padding: '0.375rem 0.75rem',
-                background: showParcels ? '#10b981' : 'white',
-                color: showParcels ? 'white' : '#374151',
-                border: '1.5px solid',
-                borderColor: showParcels ? '#10b981' : '#d1d5db',
-                borderRadius: '0.375rem',
-                fontSize: '0.8125rem',
-                cursor: 'pointer',
-                fontWeight: 600,
-                transition: 'all 0.2s',
-                boxShadow: showParcels ? '0 1px 3px rgba(16, 185, 129, 0.3)' : 'none',
-                whiteSpace: 'nowrap',
-              }}
-              onMouseEnter={(e) => {
-                if (!showParcels) {
-                  e.currentTarget.style.borderColor = '#9ca3af';
-                  e.currentTarget.style.background = '#f9fafb';
-                }
-              }}
-              onMouseLeave={(e) => {
-                if (!showParcels) {
-                  e.currentTarget.style.borderColor = '#d1d5db';
-                  e.currentTarget.style.background = 'white';
-                }
-              }}
-            >
-              {showParcels ? '✓' : '○'} Tax Parcels
-            </button>
-            <button
-              onClick={() => setShowInfoWetlands(!showInfoWetlands)}
-              style={{
-                padding: '0.375rem 0.75rem',
-                background: showInfoWetlands ? '#10b981' : 'white',
-                color: showInfoWetlands ? 'white' : '#374151',
-                border: '1.5px solid',
-                borderColor: showInfoWetlands ? '#10b981' : '#d1d5db',
-                borderRadius: '0.375rem',
-                fontSize: '0.8125rem',
-                cursor: 'pointer',
-                fontWeight: 600,
-                transition: 'all 0.2s',
-                boxShadow: showInfoWetlands ? '0 1px 3px rgba(16, 185, 129, 0.3)' : 'none',
-                whiteSpace: 'nowrap',
-              }}
-              onMouseEnter={(e) => {
-                if (!showInfoWetlands) {
-                  e.currentTarget.style.borderColor = '#9ca3af';
-                  e.currentTarget.style.background = '#f9fafb';
-                }
-              }}
-              onMouseLeave={(e) => {
-                if (!showInfoWetlands) {
-                  e.currentTarget.style.borderColor = '#d1d5db';
-                  e.currentTarget.style.background = 'white';
-                }
-              }}
-            >
-              {showInfoWetlands ? '✓' : '○'} DEC Wetlands
-            </button>
-          </div>
-        </div>
-      </div>
-
-      {totalObservations > 0 && (
-        <div style={{
-          padding: '0.875rem 1.25rem',
-          background: 'var(--bg-secondary)',
-          border: '1px solid var(--border-color)',
-          borderRadius: '0.75rem',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          gap: '1rem',
-          color: 'var(--text-secondary)',
-          fontSize: '0.9rem',
-        }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-            <svg
-              style={{ width: '1.25rem', height: '1.25rem', color: 'var(--accent-primary)', flexShrink: 0 }}
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"
-              />
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"
-              />
-            </svg>
-            <span>
-              <strong style={{ color: 'var(--text-primary)' }}>{plotted}</strong> of <strong style={{ color: 'var(--text-primary)' }}>{totalObservations}</strong> observations plotted on map
-            </span>
-          </div>
-          {obscuredCount > 0 && (
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-              <svg
-                style={{ width: '1rem', height: '1rem', color: 'var(--color-accent)', flexShrink: 0 }}
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"
-                />
-              </svg>
-              <span style={{ fontSize: '0.85rem' }}>
-                {obscuredCount} obscured
-              </span>
-            </div>
-          )}
-        </div>
-      )}
     </div>
   );
 }

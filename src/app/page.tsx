@@ -42,7 +42,7 @@ const ObservationMap = dynamic(() => import('@/components/ObservationMap'), {
 function HomeContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  
+
   const [observations, setObservations] = useState<iNaturalistObservation[]>([]);
   const [gbifObservations, setGbifObservations] = useState<GBIFObservation[]>([]);
   // Species-centric data from species-counts endpoints
@@ -462,7 +462,7 @@ function HomeContent() {
   useEffect(() => {
     const address = searchParams.get('address');
     const radiusParam = searchParams.get('radius');
-    
+
     if (address) {
       const searchRadius = radiusParam ? parseFloat(radiusParam) : 0.5;
       setRadius(searchRadius);
@@ -716,8 +716,8 @@ function HomeContent() {
 
   return (
     <main className="main-container">
-      <div className="two-column-layout">
-        {/* Left Column - Search */}
+      <div className="three-column-layout">
+        {/* Left Column - Search and Filters */}
         <div className="search-column">
           <AddressSearch
             onSearch={handleSearch}
@@ -795,11 +795,27 @@ function HomeContent() {
           </div>
         </div>
 
-        {/* Right Column - Map and Results */}
+        {/* Middle Column - Map */}
+        <div className="map-column">
+          <Suspense fallback={
+            <div className="map-container" style={{ height: '100%', background: 'var(--bg-tertiary)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <p style={{ color: 'var(--text-secondary)' }}>Loading map...</p>
+            </div>
+          }>
+            <ObservationMap
+              observations={expandedSpeciesObservations.length > 0 ? expandedSpeciesObservations : [...filteredObservations, ...filteredGBIFObservations]}
+              searchCoordinates={searchCoordinates || undefined}
+              radius={radius}
+              hoveredSpecies={hoveredSpecies}
+            />
+          </Suspense>
+        </div>
+
+        {/* Right Column - Species Results */}
         <div className="results-column">
           {error ? (
-            <div className="error-state">
-              <svg className="error-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <div className="empty-state">
+              <svg className="empty-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path
                   strokeLinecap="round"
                   strokeLinejoin="round"
@@ -807,138 +823,106 @@ function HomeContent() {
                   d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"
                 />
               </svg>
-              <h3 className="error-title">Error</h3>
-              <p className="error-message">{error}</p>
+              <h3 className="empty-title">Something went wrong</h3>
+              <p className="empty-description">{error}</p>
             </div>
-          ) : (loading || gbifLoading || speciesLoading || gbifSpeciesLoading) && (speciesGroups.length === 0 && gbifSpeciesGroups.length === 0 && observations.length === 0 && gbifObservations.length === 0) ? (
+          ) : loading || gbifLoading || speciesLoading || gbifSpeciesLoading ? (
             <div className="loading-container">
               <div className="loading-spinner">
                 <div className="spinner"></div>
               </div>
-              <p className="loading-text">Searching for observations...</p>
+              <p className="loading-text">Searching for species...</p>
+              <p style={{ fontSize: '0.875rem', color: 'var(--text-tertiary)' }}>
+                Found {progressCurrent + gbifProgressCurrent} observations so far...
+              </p>
             </div>
-          ) : (speciesGroups.length > 0 || gbifSpeciesGroups.length > 0 || observations.length > 0 || gbifObservations.length > 0) ? (
-            <div className="observations-section">
-              {/* Map - Always visible when we have data */}
-              <ObservationMap
-                observations={expandedSpeciesObservations.length > 0 ? expandedSpeciesObservations : [...filteredObservations, ...filteredGBIFObservations]}
-                searchCoordinates={searchCoordinates || undefined}
-                radius={radius}
-                hoveredSpecies={hoveredSpecies}
-              />
-
-              {/* Species Results Header and List */}
-              <div className="observations-header">
-                <h2 className="observations-title">
-                  {(loading || gbifLoading) ? (
-                    <>
-                      Loading observations...
-                      {loading && progressTotal > 0 && (
-                        <span style={{ fontSize: '0.875rem', marginLeft: '0.5rem' }}>
-                          (iNaturalist: {observations.length.toLocaleString()}/{progressTotal.toLocaleString()})
-                        </span>
-                      )}
-                      {gbifLoading && gbifProgressTotal > 0 && (
-                        <span style={{ fontSize: '0.875rem', marginLeft: '0.5rem' }}>
-                          (GBIF: {gbifObservations.length.toLocaleString()}/{gbifProgressTotal.toLocaleString()})
-                        </span>
-                      )}
-                    </>
-                  ) : (
-                    <>
-                      Found {(speciesGroups.length + gbifSpeciesGroups.length).toLocaleString()} total species
-                    </>
-                  )}
-                </h2>
-              </div>
-
-              <div className="observations-list" style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
-                {/* iNaturalist Data Source */}
-                {(filteredAndSortedSpeciesGroups.length > 0 || filteredAndSortedGroups.length > 0) && (
-                  <SpeciesListWrapper groups={filteredAndSortedSpeciesGroups.length > 0 ? filteredAndSortedSpeciesGroups : filteredAndSortedGroups}>
-                    {(filteredAndSortedSpeciesGroups.length > 0 ? filteredAndSortedSpeciesGroups : filteredAndSortedGroups).map((group, index) => (
-                      <ObservationGroupRow
-                        key={`inat-${group.scientificName}-${index}`}
-                        group={group}
-                        searchCoordinates={searchCoordinates || undefined}
-                        radius={radius}
-                        onHover={(scientificName) => setHoveredSpecies(scientificName)}
-                        onHoverEnd={() => setHoveredSpecies(null)}
-                        onExpand={handleSpeciesExpand}
-                        onCollapse={handleSpeciesCollapse}
-                      />
-                    ))}
-                    {(speciesLoading || loading) && (
-                      <div className="loading-more">
-                        <div className="loading-spinner">
-                          <div className="spinner"></div>
-                        </div>
-                        <p className="loading-text">Loading more iNaturalist species...</p>
-                      </div>
-                    )}
-                  </SpeciesListWrapper>
-                )}
-
-                {/* GBIF Data Source */}
-                {(filteredAndSortedGBIFSpeciesGroups.length > 0 || filteredAndSortedGBIFGroups.length > 0) && (
-                  <GBIFSpeciesListWrapper groups={filteredAndSortedGBIFSpeciesGroups.length > 0 ? filteredAndSortedGBIFSpeciesGroups : filteredAndSortedGBIFGroups}>
-                    {(filteredAndSortedGBIFSpeciesGroups.length > 0 ? filteredAndSortedGBIFSpeciesGroups : filteredAndSortedGBIFGroups).map((group, index) => (
-                      <GBIFObservationGroupRow
-                        key={`gbif-${group.scientificName}-${index}`}
-                        group={group}
-                        searchCoordinates={searchCoordinates || undefined}
-                        radius={radius}
-                        onHover={(scientificName) => setHoveredSpecies(scientificName)}
-                        onHoverEnd={() => setHoveredSpecies(null)}
-                        onExpand={handleSpeciesExpand}
-                        onCollapse={handleSpeciesCollapse}
-                      />
-                    ))}
-                    {(gbifSpeciesLoading || gbifLoading) && (
-                      <div className="loading-more">
-                        <div className="loading-spinner">
-                          <div className="spinner"></div>
-                        </div>
-                        <p className="loading-text">Loading more GBIF species...</p>
-                      </div>
-                    )}
-                  </GBIFSpeciesListWrapper>
-                )}
-
-                {/* Empty state when filters return no results */}
-                {filteredAndSortedSpeciesGroups.length === 0 && filteredAndSortedGroups.length === 0 &&
-                  filteredAndSortedGBIFSpeciesGroups.length === 0 && filteredAndSortedGBIFGroups.length === 0 && (
-                    <div className="empty-state" style={{ padding: '2rem' }}>
-                      <p className="text-secondary">No species match your filter.</p>
-                    </div>
-                  )}
-              </div>
-            </div>
-          ) : searchedLocation && !error ? (
+          ) : (observations.length === 0 && gbifObservations.length === 0 && speciesGroups.length === 0 && gbifSpeciesGroups.length === 0 && searchedLocation) ? (
             <div className="empty-state">
               <svg className="empty-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path
                   strokeLinecap="round"
                   strokeLinejoin="round"
-                  strokeWidth={1.5}
+                  strokeWidth={2}
                   d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
                 />
               </svg>
-              <h3 className="empty-title">No observations found</h3>
+              <h3 className="empty-title">No species found</h3>
               <p className="empty-description">
-                Try searching for a different location or check back later.
+                Try increasing the search radius or searching for a different location.
+              </p>
+            </div>
+          ) : !searchedLocation ? (
+            <div className="empty-state">
+              <svg className="empty-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"
+                />
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"
+                />
+              </svg>
+              <h3 className="empty-title">Enter a location</h3>
+              <p className="empty-description">
+                Search for an address to see observed species in the area.
               </p>
             </div>
           ) : (
-            <div className="observations-section">
-              {/* Map - Always visible even before search */}
-              <ObservationMap
-                observations={[]}
-                searchCoordinates={searchCoordinates || undefined}
-                radius={radius}
-                hoveredSpecies={hoveredSpecies}
-              />
-            </div>
+            <>
+              <div style={{ marginBottom: '1.5rem', padding: '0 0.5rem' }}>
+                <h2 style={{ fontSize: '1.25rem', fontWeight: '600', color: 'var(--text-primary)', marginBottom: '0.5rem' }}>
+                  Observed Species
+                </h2>
+                <p style={{ fontSize: '0.875rem', color: 'var(--text-secondary)' }}>
+                  Found {filteredAndSortedSpeciesGroups.length + filteredAndSortedGBIFSpeciesGroups.length} unique species
+                </p>
+              </div>
+
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+                {/* iNaturalist Results */}
+                {filteredAndSortedSpeciesGroups.length > 0 && (
+                  <SpeciesListWrapper
+                    groups={filteredAndSortedSpeciesGroups}
+                  >
+                    {filteredAndSortedSpeciesGroups.map((group) => (
+                      <ObservationGroupRow
+                        key={`inat-${group.scientificName}`}
+                        group={group}
+                        searchCoordinates={searchCoordinates || undefined}
+                        radius={radius}
+                        onExpand={handleSpeciesExpand}
+                        onCollapse={handleSpeciesCollapse}
+                        onHover={(name) => setHoveredSpecies(name)}
+                      />
+                    ))}
+                  </SpeciesListWrapper>
+                )}
+
+                {/* GBIF Results */}
+                {filteredAndSortedGBIFSpeciesGroups.length > 0 && (
+                  <GBIFSpeciesListWrapper
+                    groups={filteredAndSortedGBIFSpeciesGroups}
+                  >
+                    {filteredAndSortedGBIFSpeciesGroups.map((group) => (
+                      <GBIFObservationGroupRow
+                        key={`gbif-${group.scientificName}`}
+                        group={group}
+                        searchCoordinates={searchCoordinates || undefined}
+                        radius={radius}
+                        onExpand={handleSpeciesExpand}
+                        onCollapse={handleSpeciesCollapse}
+                        onHover={(name) => setHoveredSpecies(name)}
+                      />
+                    ))}
+                  </GBIFSpeciesListWrapper>
+                )}
+              </div>
+            </>
           )}
         </div>
       </div>
@@ -983,18 +967,18 @@ function HomeContent() {
 export default function Home() {
   return (
     <Suspense fallback={
-      <div style={{ 
-        display: 'flex', 
-        alignItems: 'center', 
-        justifyContent: 'center', 
+      <div style={{
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
         minHeight: '100vh',
         background: 'var(--bg-primary)'
       }}>
         <div style={{ textAlign: 'center' }}>
-          <div className="spinner" style={{ 
-            width: '40px', 
-            height: '40px', 
-            border: '4px solid var(--border-color)', 
+          <div className="spinner" style={{
+            width: '40px',
+            height: '40px',
+            border: '4px solid var(--border-color)',
             borderTop: '4px solid var(--accent-primary)',
             borderRadius: '50%',
             animation: 'spin 1s linear infinite',
