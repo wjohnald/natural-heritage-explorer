@@ -276,6 +276,8 @@ export async function GET(request: Request) {
             earnedScore: number;
             matched: boolean;
             implemented: boolean;
+            dataSource?: string;
+            notes?: string;
         }> = [];
 
         // Query each criterion
