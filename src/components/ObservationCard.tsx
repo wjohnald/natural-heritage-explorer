@@ -13,7 +13,24 @@ interface ObservationCardProps {
 
 export default function ObservationCard({ observation, searchCoordinates }: ObservationCardProps) {
     const [imageError, setImageError] = useState(false);
-    const photoUrl = getObservationPhotoUrl(observation);
+    const [currentImageIndex, setCurrentImageIndex] = useState(0);
+
+
+    // Get all photo URLs and convert to large quality
+    const photoUrls = observation.photos?.map(photo => photo.url.replace('square', 'large')) || [];
+    const hasMultiplePhotos = photoUrls.length > 1;
+    const photoUrl = photoUrls[currentImageIndex] || getObservationPhotoUrl(observation);
+
+    const handlePreviousImage = () => {
+        setCurrentImageIndex((prev) => (prev === 0 ? photoUrls.length - 1 : prev - 1));
+        setImageError(false);
+    };
+
+    const handleNextImage = () => {
+        setCurrentImageIndex((prev) => (prev === photoUrls.length - 1 ? 0 : prev + 1));
+        setImageError(false);
+    };
+
     const displayName = getObservationName(observation);
     const scientificName = observation.taxon?.name;
     const observedDate = formatObservationDate(observation);
@@ -21,8 +38,8 @@ export default function ObservationCard({ observation, searchCoordinates }: Obse
     const location = observation.place_guess || 'Location unknown';
     const qualityGrade = observation.quality_grade;
     const identificationsCount = observation.identifications_count || 0;
-    const isObscured = observation.obscured || observation.coordinates_obscured || 
-                       (observation.geoprivacy && observation.geoprivacy !== 'open');
+    const isObscured = observation.obscured || observation.coordinates_obscured ||
+        (observation.geoprivacy && observation.geoprivacy !== 'open');
 
     // Get coordinates from various possible sources
     let lat: number | undefined = observation.latitude;
@@ -55,14 +72,97 @@ export default function ObservationCard({ observation, searchCoordinates }: Obse
 
     return (
         <div className="observation-card group">
-            <div className="card-image-container">
+            <div className="card-image-container" style={{ position: 'relative' }}>
                 {photoUrl && !imageError ? (
-                    <img
-                        src={photoUrl}
-                        alt={displayName}
-                        className="card-image"
-                        onError={() => setImageError(true)}
-                    />
+                    <>
+                        <img
+                            src={photoUrl}
+                            alt={displayName}
+                            className="card-image"
+                            onError={() => setImageError(true)}
+                        />
+                        {hasMultiplePhotos && (
+                            <>
+                                {/* Left Arrow */}
+                                <button
+                                    onClick={handlePreviousImage}
+                                    style={{
+                                        position: 'absolute',
+                                        left: '8px',
+                                        top: '50%',
+                                        transform: 'translateY(-50%)',
+                                        background: 'rgba(0, 0, 0, 0.6)',
+                                        border: 'none',
+                                        borderRadius: '50%',
+                                        width: '32px',
+                                        height: '32px',
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        justifyContent: 'center',
+                                        cursor: 'pointer',
+                                        color: 'white',
+                                        transition: 'background 0.2s',
+                                        zIndex: 10,
+                                    }}
+                                    onMouseEnter={(e) => e.currentTarget.style.background = 'rgba(0, 0, 0, 0.8)'}
+                                    onMouseLeave={(e) => e.currentTarget.style.background = 'rgba(0, 0, 0, 0.6)'}
+                                    aria-label="Previous image"
+                                >
+                                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                        <path d="M15 18l-6-6 6-6" />
+                                    </svg>
+                                </button>
+
+                                {/* Right Arrow */}
+                                <button
+                                    onClick={handleNextImage}
+                                    style={{
+                                        position: 'absolute',
+                                        right: '8px',
+                                        top: '50%',
+                                        transform: 'translateY(-50%)',
+                                        background: 'rgba(0, 0, 0, 0.6)',
+                                        border: 'none',
+                                        borderRadius: '50%',
+                                        width: '32px',
+                                        height: '32px',
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        justifyContent: 'center',
+                                        cursor: 'pointer',
+                                        color: 'white',
+                                        transition: 'background 0.2s',
+                                        zIndex: 10,
+                                    }}
+                                    onMouseEnter={(e) => e.currentTarget.style.background = 'rgba(0, 0, 0, 0.8)'}
+                                    onMouseLeave={(e) => e.currentTarget.style.background = 'rgba(0, 0, 0, 0.6)'}
+                                    aria-label="Next image"
+                                >
+                                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                        <path d="M9 18l6-6-6-6" />
+                                    </svg>
+                                </button>
+
+                                {/* Image Counter */}
+                                <div
+                                    style={{
+                                        position: 'absolute',
+                                        bottom: '8px',
+                                        right: '8px',
+                                        background: 'rgba(0, 0, 0, 0.6)',
+                                        color: 'white',
+                                        padding: '4px 8px',
+                                        borderRadius: '12px',
+                                        fontSize: '0.75rem',
+                                        fontWeight: 500,
+                                        zIndex: 10,
+                                    }}
+                                >
+                                    {currentImageIndex + 1} / {photoUrls.length}
+                                </div>
+                            </>
+                        )}
+                    </>
                 ) : (
                     <div className="card-image-placeholder">
                         <svg

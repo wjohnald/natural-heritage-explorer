@@ -44,9 +44,9 @@ export function getObservationPhotoUrl(observation: iNaturalistObservation): str
         return null;
     }
 
-    // Get the first photo and convert to medium size
+    // Get the first photo and convert to large size for better quality
     const photoUrl = observation.photos[0].url;
-    return photoUrl.replace('square', 'medium');
+    return photoUrl.replace('square', 'large');
 }
 
 /**
