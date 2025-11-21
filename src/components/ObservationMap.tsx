@@ -325,6 +325,17 @@ function DECWetlandsLayer({ enabled }: { enabled: boolean }) {
   return null;
 }
 
+// Component to update map view when search coordinates change
+function MapUpdater({ center, zoom }: { center: [number, number], zoom: number }) {
+  const map = useMap();
+
+  useEffect(() => {
+    map.setView(center, zoom);
+  }, [map, center, zoom]);
+
+  return null;
+}
+
 // Component to handle Tax Parcel clicks and show conservation scores
 function ParcelScoreHandler({ enabled }: { enabled: boolean }) {
   const map = useMap();
@@ -963,6 +974,7 @@ export default function ObservationMap({ observations, searchCoordinates, radius
           style={{ height: '100%', width: '100%', borderRadius: '0.5rem', cursor: 'pointer' }}
           scrollWheelZoom={true}
         >
+          <MapUpdater center={center} zoom={13} />
           <WetlandInfoHandler enabled={showNWI} />
 
           {/* Render selected basemap */}
