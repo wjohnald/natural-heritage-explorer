@@ -13,6 +13,7 @@ interface ObservationMapProps {
   searchCoordinates?: Coordinates;
   radius?: number; // in miles
   hoveredSpecies?: string | null;
+  onParcelSelected?: (data: any, loading: boolean, error: string | null) => void;
 }
 
 type BasemapType = 'topo' | 'street' | 'satellite';
@@ -335,59 +336,16 @@ function MapUpdater({ center, zoom }: { center: [number, number], zoom: number }
 }
 
 // Component to handle Tax Parcel clicks and show conservation scores
-function ParcelScoreHandler({ enabled }: { enabled: boolean }) {
+function ParcelScoreHandler({ enabled, onParcelSelected }: { enabled: boolean; onParcelSelected?: (data: any, loading: boolean, error: string | null) => void }) {
   const map = useMap();
-  const [parcelPopup, setParcelPopup] = useState<L.Popup | null>(null);
-
-  // Helper to get color from yellow to maroon based on percentage
-  const getScoreColor = (percentage: number) => {
-    // Maroon is #800000 (128, 0, 0)
-    // Yellow is #FFFF00 (255, 255, 0)
-
-    // We want 0% = Yellow, 100% = Maroon
-    // R: 255 -> 128
-    // G: 255 -> 0
-    // B: 0 -> 0
-
-    const r = Math.round(255 - (percentage / 100) * (255 - 128));
-    const g = Math.round(255 - (percentage / 100) * 255);
-    const b = 0;
-
-    return `rgb(${r}, ${g}, ${b})`;
-  };
-
-  // Helper to get text color (black for light backgrounds, white for dark)
-  const getTextColor = (percentage: number) => {
-    return percentage > 50 ? '#ffffff' : '#000000';
-  };
 
   useEffect(() => {
-    if (!enabled) return;
+    if (!enabled || !onParcelSelected) return;
 
     const handleClick = async (e: L.LeafletMouseEvent) => {
       try {
-        // Remove existing popup if any
-        if (parcelPopup) {
-          map.removeLayer(parcelPopup);
-        }
-
-        // Create popup immediately with loading state
-        const popup = L.popup({ maxWidth: 450 })
-          .setLatLng(e.latlng)
-          .setContent(`
-            <div style="padding: 0.5rem; max-width: 400px;">
-              <h3 style="margin: 0 0 0.5rem 0; font-size: 1rem; font-weight: 600; color: var(--text-primary);">
-                🏞️ Conservation Priority Score
-              </h3>
-              <div style="font-size: 0.875rem; color: var(--text-primary); text-align: center; padding: 2rem;">
-                <div style="font-size: 2rem; margin-bottom: 0.5rem;">⏳</div>
-                <div>Loading parcel information...</div>
-              </div>
-            </div>
-          `)
-          .openOn(map);
-
-        setParcelPopup(popup);
+        // Notify start of loading
+        onParcelSelected(null, true, null);
 
         // Fetch parcel info
         const geocodeUrl = `https://nominatim.openstreetmap.org/reverse?format=json&lat=${e.latlng.lat}&lon=${e.latlng.lng}`;
@@ -402,174 +360,16 @@ function ParcelScoreHandler({ enabled }: { enabled: boolean }) {
         const scoreData = await scoreResponse.json();
 
         if (scoreData.error) {
-          popup.setContent(`
-            <div style="padding: 0.5rem; max-width: 450px;">
-              <h3 style="margin: 0 0 0.5rem 0; font-size: 1rem; font-weight: 600; color: var(--text-primary);">
-                🏞️ Conservation Priority Score
-              </h3>
-              <div style="font-size: 0.875rem; color: #ef4444; text-align: center; padding: 2rem;">
-                <div style="font-size: 2rem; margin-bottom: 0.5rem;">⚠️</div>
-                <div>Could not load parcel</div>
-                <div style="font-size: 0.75rem; margin-top: 0.5rem; color: var(--text-secondary);">${scoreData.error}</div>
-              </div>
-            </div>
-          `);
+          onParcelSelected(null, false, scoreData.error);
           return;
         }
 
-        // Build full popup content
-        const scorePercent = scoreData.maxPossibleScore > 0
-          ? Math.round((scoreData.totalScore / scoreData.maxPossibleScore) * 100)
-          : 0;
-
-        let content = `
-          <div style="padding: 0.5rem; max-width: 450px;">
-            <h3 style="margin: 0 0 0.5rem 0; font-size: 1rem; font-weight: 600; color: var(--text-primary);">
-              🏞️ Conservation Priority Score
-            </h3>
-            <div style="font-size: 0.875rem; color: var(--text-primary);">
-        `;
-
-        // Parcel info
-        if (scoreData.parcelInfo) {
-          content += `
-            <div style="margin-bottom: 0.75rem; padding: 0.5rem; background: var(--bg-tertiary); border-radius: 0.375rem; font-size: 0.8125rem;">
-              <div style="margin-bottom: 0.25rem;"><strong>Address:</strong> ${scoreData.parcelInfo.address || 'N/A'}</div>
-              <div style="margin-bottom: 0.25rem;"><strong>Municipality:</strong> ${scoreData.parcelInfo.municipality || 'N/A'}, ${scoreData.parcelInfo.county || 'N/A'}</div>
-              <div style="margin-bottom: 0.25rem;"><strong>Parcel ID:</strong> ${scoreData.parcelInfo.printKey || 'N/A'}</div>
-              <div><strong>Size:</strong> ${scoreData.parcelInfo.acres ? parseFloat(scoreData.parcelInfo.acres).toFixed(2) : 'N/A'} acres</div>
-            </div>
-          `;
-        }
-
-        // Score display with Graphic Indicator (Total Score text removed)
-        content += `
-          <div style="margin-bottom: 1rem; padding: 1rem; background: #f9fafb; border-radius: 0.5rem; border: 1px solid #e5e7eb;">
-            <!-- Graphic Indicator Bar -->
-            <div style="position: relative; height: 24px; background: linear-gradient(to right, #ffff00, #800000); border-radius: 12px; border: 1px solid #d1d5db; margin-bottom: 0.5rem;">
-              <div style="position: absolute; left: ${Math.max(2, Math.min(98, scorePercent))}%; top: 50%; transform: translate(-50%, -50%); width: 4px; height: 32px; background: #000; border: 1px solid white; box-shadow: 0 1px 3px rgba(0,0,0,0.3);"></div>
-            </div>
-            <div style="display: flex; justify-content: space-between; font-size: 0.75rem; color: #6b7280;">
-              <span>Low Value</span>
-              <span>High Value</span>
-            </div>
-          </div>
-        `;
-
-        // Category Breakdown
-        if (scoreData.criteriaSummary && scoreData.criteriaSummary.length > 0) {
-          // Calculate category scores
-          const byCategory: Record<string, { earned: number, max: number }> = {};
-
-          scoreData.criteriaSummary.forEach((c: any) => {
-            if (!byCategory[c.category]) {
-              byCategory[c.category] = { earned: 0, max: 0 };
-            }
-            byCategory[c.category].earned += c.earnedScore;
-            byCategory[c.category].max += c.maxScore;
-          });
-
-          content += `
-            <div style="margin-bottom: 1rem;">
-              <h4 style="font-size: 0.875rem; font-weight: 600; margin-bottom: 0.5rem; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.05em;">Category Breakdown</h4>
-              <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem;">
-          `;
-
-          Object.entries(byCategory).forEach(([category, scores]) => {
-            const catPercent = scores.max > 0 ? (scores.earned / scores.max) * 100 : 0;
-            const indicatorColor = getScoreColor(catPercent);
-
-            content += `
-              <div style="display: flex; align-items: center; justify-content: space-between; padding: 0.5rem; background: #fff; border-radius: 0.375rem; border: 1px solid #e5e7eb;">
-                <div style="display: flex; align-items: center; gap: 0.5rem; overflow: hidden;">
-                  <div style="flex-shrink: 0; width: 12px; height: 12px; border-radius: 50%; background-color: ${indicatorColor}; border: 1px solid rgba(0,0,0,0.1);"></div>
-                  <div style="font-size: 0.75rem; font-weight: 600; color: #4b5563; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${category}</div>
-                </div>
-                <div style="font-size: 0.875rem; font-weight: 700; color: #800000; margin-left: 0.5rem;">
-                  ${scores.earned} <span style="font-size: 0.75rem; font-weight: 400; color: #9ca3af;">/ ${scores.max}</span>
-                </div>
-              </div>
-            `;
-          });
-
-          content += `
-              </div>
-            </div>
-          `;
-        }
-
-        // Detailed summary (Collapsible)
-        if (scoreData.criteriaSummary && scoreData.criteriaSummary.length > 0) {
-          content += `
-            <details style="margin-top: 0.75rem; border-top: 1px solid var(--border-color); padding-top: 0.75rem;">
-              <summary style="cursor: pointer; font-weight: 600; font-size: 0.8125rem; color: var(--text-secondary); user-select: none;">
-                📊 Detailed Criteria Checklist
-              </summary>
-              <div style="margin-top: 0.5rem; max-height: 200px; overflow-y: auto;">
-          `;
-
-          // Group by category for the detailed list
-          const byCategory: Record<string, any[]> = {};
-          scoreData.criteriaSummary.forEach((c: any) => {
-            if (!byCategory[c.category]) byCategory[c.category] = [];
-            byCategory[c.category].push(c);
-          });
-
-          Object.entries(byCategory).forEach(([category, criteria]) => {
-            content += `
-              <div style="margin-bottom: 0.75rem;">
-                <div style="font-weight: 600; font-size: 0.75rem; margin-bottom: 0.25rem; color: var(--text-secondary); background: #f3f4f6; padding: 2px 6px; border-radius: 4px; display: inline-block;">
-                  ${category}
-                </div>
-                <div style="font-size: 0.75rem;">
-            `;
-
-            criteria.forEach((c: any) => {
-              const icon = c.matched ? '✅' : c.implemented ? '❌' : '⚪';
-              const color = c.matched ? '#059669' : c.implemented ? '#9ca3af' : '#d1d5db';
-              const label = c.implemented ? '' : ' (data unavailable)';
-              const weight = c.matched ? '600' : '400';
-
-              content += `
-                <div style="display: flex; justify-content: space-between; padding: 0.125rem 0; color: ${color}; font-weight: ${weight};">
-                  <span style="flex: 1; padding-right: 0.5rem;">${icon} ${c.name}${label}</span>
-                  <span>${c.earnedScore}</span>
-                </div>
-              `;
-            });
-
-            content += `
-                </div>
-              </div>
-            `;
-          });
-
-          content += `
-              </div>
-            </details>
-          `;
-        }
-
-        content += `</div></div>`;
-        popup.setContent(content);
+        // Notify success
+        onParcelSelected(scoreData, false, null);
 
       } catch (error) {
         console.error('Error getting parcel score:', error);
-
-        if (parcelPopup && map.hasLayer(parcelPopup)) {
-          parcelPopup.setContent(`
-            <div style="padding: 0.5rem; max-width: 450px;">
-              <h3 style="margin: 0 0 0.5rem 0; font-size: 1rem; font-weight: 600; color: var(--text-primary);">
-                🏞️ Conservation Priority Score
-              </h3>
-              <div style="font-size: 0.875rem; color: #ef4444; text-align: center; padding: 2rem;">
-                <div style="font-size: 2rem; margin-bottom: 0.5rem;">⚠️</div>
-                <div>An error occurred</div>
-                <div style="font-size: 0.75rem; margin-top: 0.5rem; color: var(--text-secondary);">${(error as Error).message}</div>
-              </div>
-            </div>
-          `);
-        }
+        onParcelSelected(null, false, (error as Error).message);
       }
     };
 
@@ -577,11 +377,8 @@ function ParcelScoreHandler({ enabled }: { enabled: boolean }) {
 
     return () => {
       map.off('click', handleClick);
-      if (parcelPopup) {
-        map.removeLayer(parcelPopup);
-      }
     };
-  }, [map, parcelPopup, enabled]);
+  }, [map, enabled, onParcelSelected]);
 
   return null;
 }
@@ -590,7 +387,7 @@ function ParcelScoreHandler({ enabled }: { enabled: boolean }) {
 
 const MILES_TO_METERS = 1609.34;
 
-export default function ObservationMap({ observations, searchCoordinates, radius = 0.5, hoveredSpecies }: ObservationMapProps) {
+export default function ObservationMap({ observations, searchCoordinates, radius = 0.5, hoveredSpecies, onParcelSelected }: ObservationMapProps) {
   const [isMounted, setIsMounted] = useState(false);
   const [selectedBasemap, setSelectedBasemap] = useState<BasemapType>('topo');
   const [showNWI, setShowNWI] = useState(false);
@@ -1042,7 +839,7 @@ export default function ObservationMap({ observations, searchCoordinates, radius
           )}
 
           {/* Parcel score handler */}
-          <ParcelScoreHandler enabled={showParcels} />
+          <ParcelScoreHandler enabled={showParcels} onParcelSelected={onParcelSelected} />
 
           {/* Conditionally render DEC Informational Wetlands Layer */}
           {showInfoWetlands && (

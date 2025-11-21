@@ -91,9 +91,10 @@ export class ParcelScorer {
             results.push({
                 category: metadata.category,
                 name: metadata.name,
-                score: metadata.maxScore,
+                maxScore: metadata.maxScore,
                 earnedScore: result.earnedScore,
                 matched: result.met,
+                implemented: true,
                 notes: result.notes || metadata.notes
             });
         }

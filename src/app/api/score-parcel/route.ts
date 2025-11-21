@@ -37,7 +37,7 @@ async function getParcelGeometry(address: string): Promise<any> {
             geometryType: 'esriGeometryPoint',
             spatialRel: 'esriSpatialRelWithin',
             returnGeometry: 'true',
-            outFields: 'PRINT_KEY,COUNTY_NAME,MUNI_NAME,PARCEL_ADDR,ACRES',
+            outFields: 'PRINT_KEY,COUNTY_NAME,MUNI_NAME,PARCEL_ADDR,ACRES,PRIMARY_OWNER',
         });
 
         const response = await fetch(`${parcelServiceUrl}?${params}`);
@@ -64,10 +64,10 @@ async function getParcelGeometry(address: string): Promise<any> {
             }),
             geometryType: 'esriGeometryPoint',
             spatialRel: 'esriSpatialRelIntersects',
-            distance: '15',
+            distance: '100',
             units: 'esriSRUnit_Meter',
             returnGeometry: 'true',
-            outFields: 'PRINT_KEY,COUNTY_NAME,MUNI_NAME,PARCEL_ADDR,ACRES',
+            outFields: 'PRINT_KEY,COUNTY_NAME,MUNI_NAME,PARCEL_ADDR,ACRES,PRIMARY_OWNER',
         });
 
         const bufferResponse = await fetch(`${parcelServiceUrl}?${bufferParams}`);
@@ -189,6 +189,7 @@ export async function GET(request: Request) {
                 municipality: parcel.attributes?.MUNI_NAME,
                 acres: parcel.attributes?.ACRES,
                 printKey: parcel.attributes?.PRINT_KEY,
+                owner: parcel.attributes?.PRIMARY_OWNER,
             },
             totalScore: scoreResult.totalScore,
             maxPossibleScore: criteriaSummary.reduce((sum, c) => sum + (c.maxScore || c.score || 0), 0),

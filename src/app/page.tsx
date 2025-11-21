@@ -26,6 +26,7 @@ import SpeciesListWrapper from '@/components/SpeciesListWrapper';
 import GBIFSpeciesListWrapper from '@/components/GBIFSpeciesListWrapper';
 import SidebarSpeciesList from '@/components/SidebarSpeciesList';
 import SidebarGBIFSpeciesList from '@/components/SidebarGBIFSpeciesList';
+import ScoringPanel from '@/components/ScoringPanel';
 
 // Dynamically import the map component to avoid SSR issues with Leaflet
 const ObservationMap = dynamic(() => import('@/components/ObservationMap'), {
@@ -72,6 +73,11 @@ function HomeContent() {
   const [showSGCN, setShowSGCN] = useState(false);
   const [hoveredSpecies, setHoveredSpecies] = useState<string | null>(null);
   const [expandedSpeciesObservations, setExpandedSpeciesObservations] = useState<(iNaturalistObservation | GBIFObservation)[]>([]);
+
+  // Parcel Scoring State
+  const [parcelScoreData, setParcelScoreData] = useState<any>(null);
+  const [parcelScoreLoading, setParcelScoreLoading] = useState(false);
+  const [parcelScoreError, setParcelScoreError] = useState<string | null>(null);
 
   // Get unique conservation statuses from observations
   const availableStatuses = ["Endangered", "Threatened", "Special Concern"];
@@ -485,6 +491,18 @@ function HomeContent() {
     setExpandedSpeciesObservations([]);
   };
 
+  const handleParcelSelected = (data: any, loading: boolean, error: string | null) => {
+    setParcelScoreData(data);
+    setParcelScoreLoading(loading);
+    setParcelScoreError(error);
+  };
+
+  const handleCloseScoringPanel = () => {
+    setParcelScoreData(null);
+    setParcelScoreLoading(false);
+    setParcelScoreError(null);
+  };
+
   const filteredObservations = getFilteredObservations();
   const filteredAndSortedGroups = getFilteredAndSortedGroups();
   const filteredAndSortedSpeciesGroups = getFilteredAndSortedSpeciesGroups();
@@ -807,6 +825,7 @@ function HomeContent() {
               searchCoordinates={searchCoordinates || undefined}
               radius={radius}
               hoveredSpecies={hoveredSpecies}
+              onParcelSelected={handleParcelSelected}
             />
           </Suspense>
         </div>
@@ -922,6 +941,14 @@ function HomeContent() {
                   </GBIFSpeciesListWrapper>
                 )}
               </div>
+
+              {/* Scoring Panel */}
+              <ScoringPanel
+                data={parcelScoreData}
+                loading={parcelScoreLoading}
+                error={parcelScoreError}
+                onClose={handleCloseScoringPanel}
+              />
             </>
           )}
         </div>
