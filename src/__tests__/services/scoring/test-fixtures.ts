@@ -8,7 +8,8 @@
 export const ADDRESS_789_LAPLA_ROAD = '789 Lapla Road, Marbletown, NY';
 
 // 281 DeWitt Road, Olivebridge, NY  
-// Note: In FEMA flood zone, should return true for FEMA Flood Hazard Areas criterion
+// Note: In a FEMA Special Flood Hazard Area (SFHA)
+// Requires Google Maps API key for accurate geocoding (OpenStreetMap returns city center)
 export const ADDRESS_281_DEWITT_ROAD = '281 DeWitt Road, Olivebridge, NY';
 
 // 15 Ronsen Rd / Rt 28 B, Olive, NY (Tax records: 4115-4125 Rt 28)

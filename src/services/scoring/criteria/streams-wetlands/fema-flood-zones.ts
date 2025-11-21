@@ -21,8 +21,11 @@ export class FEMAFloodZones extends BaseCriterion {
         console.log('[FEMA DEBUG] First ring has', geometry.rings?.[0]?.length, 'points');
         console.log('[FEMA DEBUG] Service URL:', this.metadata.serviceUrl);
         
-        // Try without WHERE clause first to test basic intersection
-        // Once working, we can add filtering for SFHA zones if needed
-        return this.defaultEvaluation(geometry);
+        // Filter for Special Flood Hazard Areas (SFHA) only
+        // SFHA_TF = 'T' means it's a true Special Flood Hazard Area (high-risk zones like A, AE, VE)
+        // Excludes Zone X (minimal hazard), Zone B/C (moderate hazard), etc.
+        return this.defaultEvaluation(geometry, {
+            whereClause: "SFHA_TF = 'T'"
+        });
     }
 }
