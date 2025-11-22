@@ -172,3 +172,104 @@ export async function queryFeatureService(
         return false;
     }
 }
+
+/**
+ * Projects a geometry to a new spatial reference using ArcGIS Geometry Service
+ */
+export async function projectGeometry(
+    geometry: ParcelGeometry,
+    outSR: number
+): Promise<ParcelGeometry | null> {
+    try {
+        const geomServiceUrl = 'https://utility.arcgisonline.com/arcgis/rest/services/Geometry/GeometryServer/project';
+        const inSR = geometry.spatialReference?.wkid || 3857;
+
+        if (inSR === outSR) {
+            return geometry;
+        }
+
+        console.log(`Projecting geometry from ${inSR} to ${outSR}`);
+
+        const params = new URLSearchParams({
+            f: 'json',
+            geometries: JSON.stringify({
+                geometryType: 'esriGeometryPolygon',
+                geometries: [geometry]
+            }),
+            inSR: inSR.toString(),
+            outSR: outSR.toString()
+        });
+
+        const response = await fetch(geomServiceUrl, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+            body: params.toString(),
+        });
+
+        if (!response.ok) {
+            console.error(`HTTP error projecting geometry: ${response.status}`);
+            return null;
+        }
+
+        const data = await response.json();
+
+        if (data.geometries && data.geometries.length > 0) {
+            return data.geometries[0];
+        }
+        return null;
+    } catch (error) {
+        console.error('Error projecting geometry:', error);
+        return null;
+    }
+}
+
+/**
+ * Queries a WFS service using CQL filter
+ */
+export async function queryWFSService(
+    serviceUrl: string,
+    typeName: string,
+    geometry: ParcelGeometry
+): Promise<boolean> {
+    try {
+        // 1. Project geometry to WGS84 (4326) as most WFS services use it
+        const projectedGeom = await projectGeometry(geometry, 4326);
+        if (!projectedGeom || !projectedGeom.rings) {
+            console.error('Failed to project geometry for WFS query');
+            return false;
+        }
+
+        // 2. Convert rings to WKT Polygon
+        // Take the first ring (outer boundary)
+        const ring = projectedGeom.rings[0];
+        const coords = ring.map(pt => `${pt[0]} ${pt[1]}`).join(',');
+        const wkt = `POLYGON((${coords}))`;
+
+        // 3. Construct WFS URL with CQL filter
+        const params = new URLSearchParams({
+            service: 'WFS',
+            version: '2.0.0',
+            request: 'GetFeature',
+            typeNames: typeName,
+            outputFormat: 'application/json',
+            cql_filter: `INTERSECTS(geom, ${wkt})`,
+            count: '1' // We only need to know if any exist
+        });
+
+        const url = `${serviceUrl}?${params.toString()}`;
+        console.log(`Querying WFS: ${serviceUrl} for type ${typeName}`);
+
+        const response = await fetch(url);
+        if (!response.ok) {
+            console.error(`HTTP error querying WFS: ${response.status}`);
+            return false;
+        }
+
+        const data = await response.json();
+        return data.features && data.features.length > 0;
+
+    } catch (error) {
+        console.error('Error querying WFS service:', error);
+        return false;
+    }
+}
