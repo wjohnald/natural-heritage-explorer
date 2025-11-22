@@ -8,7 +8,14 @@ interface ScoringPanelProps {
 }
 
 export default function ScoringPanel({ data, loading, error, onClose }: ScoringPanelProps) {
-    const [isExpanded, setIsExpanded] = useState(false);
+    const [expandedCategories, setExpandedCategories] = useState<Record<string, boolean>>({});
+
+    const toggleCategory = (category: string) => {
+        setExpandedCategories(prev => ({
+            ...prev,
+            [category]: !prev[category]
+        }));
+    };
 
     if (!data && !loading && !error) return null;
 
@@ -163,20 +170,58 @@ export default function ScoringPanel({ data, loading, error, onClose }: ScoringP
                     <h4 style={{ fontSize: '0.875rem', fontWeight: 600, marginBottom: '0.75rem', color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
                         Category Breakdown
                     </h4>
-                    <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '0.75rem' }}>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
                         {Object.entries(byCategory).map(([category, scores]) => {
                             const catPercent = scores.max > 0 ? (scores.earned / scores.max) * 100 : 0;
                             const indicatorColor = getScoreColor(catPercent);
+                            const isExpanded = !!expandedCategories[category];
+                            const criteria = criteriaByCategory[category] || [];
 
                             return (
-                                <div key={category} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0.5rem', background: '#fff', borderRadius: '0.375rem', border: '1px solid #e5e7eb' }}>
-                                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', overflow: 'hidden' }}>
-                                        <div style={{ flexShrink: 0, width: '12px', height: '12px', borderRadius: '50%', backgroundColor: indicatorColor, border: '1px solid rgba(0,0,0,0.1)' }}></div>
-                                        <div style={{ fontSize: '0.75rem', fontWeight: 600, color: '#4b5563', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }} title={category}>{category}</div>
-                                    </div>
-                                    <div style={{ fontSize: '0.875rem', fontWeight: 700, color: '#800000', marginLeft: '0.5rem' }}>
-                                        {scores.earned} <span style={{ fontSize: '0.75rem', fontWeight: 400, color: '#9ca3af' }}>/ {scores.max}</span>
-                                    </div>
+                                <div key={category} style={{ background: '#fff', borderRadius: '0.375rem', border: '1px solid #e5e7eb', overflow: 'hidden' }}>
+                                    <button
+                                        onClick={() => toggleCategory(category)}
+                                        style={{
+                                            display: 'flex',
+                                            alignItems: 'center',
+                                            justifyContent: 'space-between',
+                                            width: '100%',
+                                            padding: '0.75rem',
+                                            background: isExpanded ? '#f9fafb' : '#fff',
+                                            border: 'none',
+                                            cursor: 'pointer',
+                                            textAlign: 'left'
+                                        }}
+                                    >
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', overflow: 'hidden' }}>
+                                            <div style={{ flexShrink: 0, width: '12px', height: '12px', borderRadius: '50%', backgroundColor: indicatorColor, border: '1px solid rgba(0,0,0,0.1)' }}></div>
+                                            <div style={{ fontSize: '0.875rem', fontWeight: 600, color: '#4b5563', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }} title={category}>{category}</div>
+                                        </div>
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                                            <div style={{ fontSize: '0.875rem', fontWeight: 700, color: '#800000' }}>
+                                                {scores.earned} <span style={{ fontSize: '0.75rem', fontWeight: 400, color: '#9ca3af' }}>/ {scores.max}</span>
+                                            </div>
+                                            <div style={{ color: '#9ca3af', fontSize: '0.75rem', transform: isExpanded ? 'rotate(180deg)' : 'rotate(0)', transition: 'transform 0.2s' }}>▼</div>
+                                        </div>
+                                    </button>
+
+                                    {isExpanded && (
+                                        <div style={{ padding: '0.75rem', borderTop: '1px solid #e5e7eb', background: '#f9fafb' }}>
+                                            {criteria.map((c: any, idx: number) => {
+                                                const icon = c.matched ? '✅' : c.implemented ? '❌' : '⚪';
+                                                const color = c.matched ? '#059669' : c.implemented ? '#6b7280' : '#9ca3af';
+                                                const label = c.implemented ? '' : ' (data unavailable)';
+                                                const weight = c.matched ? '600' : '400';
+
+                                                return (
+                                                    <div key={idx} style={{ display: 'flex', justifyContent: 'space-between', padding: '0.25rem 0', color, fontWeight: weight, fontSize: '0.8125rem' }}>
+                                                        <span style={{ flex: 1, paddingRight: '0.5rem' }}>{icon} {c.name}{label}</span>
+                                                        <span>{c.earnedScore}</span>
+                                                    </div>
+                                                );
+                                            })}
+                                        </div>
+                                    )}
                                 </div>
                             );
                         })}
@@ -192,67 +237,6 @@ export default function ScoringPanel({ data, loading, error, onClose }: ScoringP
                     <div style={{ marginBottom: '0.25rem' }}><strong>Owner:</strong> {data.parcelInfo.owner || 'N/A'}</div>
                     <div style={{ marginBottom: '0.25rem' }}><strong>Parcel ID:</strong> {data.parcelInfo.printKey || 'N/A'}</div>
                     <div><strong>Size:</strong> {data.parcelInfo.acres ? parseFloat(data.parcelInfo.acres).toFixed(2) : 'N/A'} acres</div>
-                </div>
-            )}
-
-            {/* Detailed Checklist */}
-            {Object.keys(criteriaByCategory).length > 0 && (
-                <div style={{ borderTop: '1px solid var(--border-color)', paddingTop: '1rem' }}>
-                    <button
-                        onClick={() => setIsExpanded(!isExpanded)}
-                        style={{
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'space-between',
-                            width: '100%',
-                            background: 'none',
-                            border: 'none',
-                            cursor: 'pointer',
-                            padding: 0,
-                            color: 'var(--text-secondary)',
-                            fontWeight: 600,
-                            fontSize: '0.875rem'
-                        }}
-                    >
-                        <span>📊 Detailed Criteria Checklist</span>
-                        <span style={{ transform: isExpanded ? 'rotate(180deg)' : 'rotate(0)', transition: 'transform 0.2s' }}>▼</span>
-                    </button>
-
-                    {isExpanded && (
-                        <div style={{ marginTop: '1rem', maxHeight: '400px', overflowY: 'auto', paddingRight: '0.5rem' }}>
-                            {Object.entries(criteriaByCategory).map(([category, criteria]) => (
-                                <div key={category} style={{ marginBottom: '1rem' }}>
-                                    <div style={{
-                                        fontWeight: 600,
-                                        fontSize: '0.75rem',
-                                        marginBottom: '0.5rem',
-                                        color: 'var(--text-secondary)',
-                                        background: '#f3f4f6',
-                                        padding: '2px 8px',
-                                        borderRadius: '4px',
-                                        display: 'inline-block'
-                                    }}>
-                                        {category}
-                                    </div>
-                                    <div style={{ fontSize: '0.8125rem' }}>
-                                        {criteria.map((c: any, idx: number) => {
-                                            const icon = c.matched ? '✅' : c.implemented ? '❌' : '⚪';
-                                            const color = c.matched ? '#059669' : c.implemented ? '#9ca3af' : '#d1d5db';
-                                            const label = c.implemented ? '' : ' (data unavailable)';
-                                            const weight = c.matched ? '600' : '400';
-
-                                            return (
-                                                <div key={idx} style={{ display: 'flex', justifyContent: 'space-between', padding: '0.25rem 0', color, fontWeight: weight }}>
-                                                    <span style={{ flex: 1, paddingRight: '0.5rem' }}>{icon} {c.name}{label}</span>
-                                                    <span>{c.earnedScore}</span>
-                                                </div>
-                                            );
-                                        })}
-                                    </div>
-                                </div>
-                            ))}
-                        </div>
-                    )}
                 </div>
             )}
         </div>
