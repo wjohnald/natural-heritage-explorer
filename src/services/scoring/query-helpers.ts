@@ -8,12 +8,15 @@ export async function bufferGeometry(
     bufferDistanceFeet: number
 ): Promise<ParcelGeometry | null> {
     try {
-        console.log(`Buffering geometry by ${bufferDistanceFeet} feet using ArcGIS Geometry Service`);
+        console.log(`[BUFFER DEBUG] Buffering geometry by ${bufferDistanceFeet} feet using ArcGIS Geometry Service`);
+        console.log(`[BUFFER DEBUG] Input geometry SR: ${geometry.spatialReference?.wkid}`);
+        console.log(`[BUFFER DEBUG] Input geometry has rings: ${!!geometry.rings}, count: ${geometry.rings?.length}`);
 
         const geomServiceUrl = 'https://utility.arcgisonline.com/arcgis/rest/services/Geometry/GeometryServer/buffer';
 
         // Convert buffer from feet to meters (1 foot = 0.3048 meters)
         const bufferInMeters = bufferDistanceFeet * 0.3048;
+        console.log(`[BUFFER DEBUG] Buffer distance: ${bufferDistanceFeet}ft = ${bufferInMeters}m`);
 
         // Ensure we have a spatial reference
         const sr = geometry.spatialReference || { wkid: 3857 };
@@ -39,21 +42,34 @@ export async function bufferGeometry(
         });
 
         if (!bufferResponse.ok) {
-            console.error(`HTTP error buffering geometry: ${bufferResponse.status} ${bufferResponse.statusText}`);
+            console.error(`[BUFFER DEBUG] HTTP error buffering geometry: ${bufferResponse.status} ${bufferResponse.statusText}`);
             return null;
         }
 
         const bufferData = await bufferResponse.json();
 
+        if (bufferData.error) {
+            console.error(`[BUFFER DEBUG] ArcGIS error buffering geometry:`, bufferData.error);
+            return null;
+        }
+
         if (bufferData.geometries && bufferData.geometries.length > 0) {
-            console.log(`Successfully buffered geometry`);
-            return bufferData.geometries[0];
+            console.log(`[BUFFER DEBUG] Successfully buffered geometry`);
+            const bufferedGeom = bufferData.geometries[0];
+            // CRITICAL: Add spatial reference from buffer response
+            // The geometry service doesn't include SR in each geometry, it's at the response level
+            if (!bufferedGeom.spatialReference) {
+                bufferedGeom.spatialReference = sr; // Use the outSR we requested
+                console.log(`[BUFFER DEBUG] Added SR ${sr.wkid} to buffered geometry`);
+            }
+            console.log(`[BUFFER DEBUG] Output geometry SR: ${bufferedGeom.spatialReference?.wkid}`);
+            return bufferedGeom;
         } else {
-            console.error(`Failed to buffer geometry:`, bufferData);
+            console.error(`[BUFFER DEBUG] No geometries returned from buffer service:`, bufferData);
             return null;
         }
     } catch (error: any) {
-        console.error(`Error buffering geometry:`, error.message);
+        console.error(`[BUFFER DEBUG] Exception buffering geometry:`, error.message);
         return null;
     }
 }

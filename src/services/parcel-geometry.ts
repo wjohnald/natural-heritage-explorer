@@ -64,7 +64,13 @@ export async function getParcelGeometry(address?: string, lat?: number, lon?: nu
         const data = await response.json();
 
         if (data.features && data.features.length > 0) {
-            return data.features[0];
+            const parcel = data.features[0];
+            // CRITICAL: Add spatial reference from response to geometry
+            // The parcel service returns SR at the response level, not on each geometry
+            if (data.spatialReference && parcel.geometry) {
+                parcel.geometry.spatialReference = data.spatialReference;
+            }
+            return parcel;
         }
 
         // Fallback: Try buffering the point by 100 meters
@@ -95,7 +101,12 @@ export async function getParcelGeometry(address?: string, lat?: number, lon?: nu
 
         if (bufferData.features && bufferData.features.length > 0) {
             console.log(`Found ${bufferData.features.length} parcels in buffer, using first one`);
-            return bufferData.features[0];
+            const parcel = bufferData.features[0];
+            // CRITICAL: Add spatial reference from response to geometry
+            if (bufferData.spatialReference && parcel.geometry) {
+                parcel.geometry.spatialReference = bufferData.spatialReference;
+            }
+            return parcel;
         }
 
         throw new Error('No parcel found at this address (even with buffer)');
