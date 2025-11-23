@@ -43,8 +43,6 @@ export class ParcelScorer {
 
         // Drinking Water
         addResult('Drinking Water', 'EPA Principal Aquifers', scores.epaAquifers || 0, 1);
-        addResult('Drinking Water', 'Bedrock Aquifers (Vly School Rondout)', scores.bedrockAquifers || 0, 1);
-        addResult('Drinking Water', 'Ashokan Watershed', scores.ashokanWatershed || 0, 1);
         addResult('Drinking Water', 'DEC Class A Streams', scores.classAStreams || 0, 1);
 
         // Wildlife Habitat
@@ -52,9 +50,6 @@ export class ParcelScorer {
         addResult('Wildlife Habitat', 'NYNHP Important Areas for Rare Animals', scores.ia || 0, 1);
         addResult('Wildlife Habitat', 'NYNHP Significant Communities', scores.communities || 0, 1);
         addResult('Wildlife Habitat', 'TNC Resilient Sites', scores.resiliency || 0, 1, 'Only linkages present in town');
-        addResult('Wildlife Habitat', 'Ulster County Habitat Cores', scores.cores || 0, 1);
-        addResult('Wildlife Habitat', 'Vernal Pool with 750\' buffer', scores.pools || 0, 1, 'Includes Intermittent Woodland Pools with 750\' buffer per Hudsonia Report');
-        addResult('Wildlife Habitat', 'Hudsonia Mapped Crest/ledge/talus w/600\' buffer', scores.habitat1 || 0, 1, '600\' buffer based on Hudsonia report');
         // Assuming Habitat_2 is another habitat or placeholder
         if (scores.habitat2) {
             addResult('Wildlife Habitat', 'Additional Significant Habitat', scores.habitat2, 1);

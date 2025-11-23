@@ -55,27 +55,12 @@ export async function GET(request: Request) {
         // See parcel_scoring_methodology.csv for data source details
         const unimplementedCriteria = [
             // Streams and Wetlands (Not fully covered by CSVs)
-            { category: 'Streams and Wetlands', name: 'NYNHP Riparian Buffers or w/in 100\' of stream or 650\' of Rondout Creek and tribs', score: 1, dataSource: 'Calculate from DEC streams layer' },
             { category: 'Streams and Wetlands', name: 'FEMA Flood Zones', score: 1, dataSource: 'FEMA' },
             { category: 'Streams and Wetlands', name: 'Hydric Soils', score: 1, dataSource: 'SSURGO' },
-
-            // Recreation and Trails
-            { category: 'Recreation and Trails', name: 'Adjacent to Existing Trails', score: 1 },
-            { category: 'Recreation and Trails', name: 'Adjacent to Mohonk Preserve', score: 1 },
-            { category: 'Recreation and Trails', name: 'Within potential trail connection area', score: 1 },
-            { category: 'Recreation and Trails', name: 'Within 1 mile of hamlet centers', score: 1 },
-
-            // Scenic Areas
-            { category: 'Scenic Areas', name: 'Adjacent to SMSB', score: 1 },
-            { category: 'Scenic Areas', name: 'Adjacent to local scenic roads', score: 1 },
-            { category: 'Scenic Areas', name: 'Areas visible from SMSB and local scenic roads', score: 1 },
-            { category: 'Scenic Areas', name: 'Areas visible from-to Sky Top', score: 1 },
-            { category: 'Scenic Areas', name: 'Gateway areas', score: 1 },
 
             // Historic and Cultural
             { category: 'Historic and Cultural', name: 'Designated Historic Sites and Districts OR Houses built prior to 1900', score: 1 },
             { category: 'Historic and Cultural', name: 'Historic Marker sites', score: 1 },
-            { category: 'Historic and Cultural', name: 'Adjacent to D&H Canal', score: 1 },
             { category: 'Historic and Cultural', name: 'Adjacent to Special Properties', score: 1 },
             { category: 'Historic and Cultural', name: 'Cemeteries', score: 1 },
         ];
