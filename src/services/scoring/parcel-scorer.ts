@@ -21,9 +21,10 @@ export class ParcelScorer {
 
         // Helper to add result
         const addResult = (category: string, name: string, score: number, maxScore: number = 1, notes?: string) => {
-            const earnedScore = score > 0 ? (score === 1 ? maxScore : score) : 0;
+            const earnedScore = score;
             const matched = score > 0;
-            const finalScore = matched ? maxScore : 0;
+            const finalScore = earnedScore;
+            const displayMaxScore = Math.max(score, maxScore);
 
             if (matched) {
                 totalScore += finalScore;
@@ -32,7 +33,7 @@ export class ParcelScorer {
             results.push({
                 category,
                 name,
-                maxScore,
+                maxScore: displayMaxScore,
                 earnedScore: finalScore,
                 matched,
                 implemented: true,

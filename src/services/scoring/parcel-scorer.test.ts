@@ -44,38 +44,39 @@ describe('ParcelScorer Integration Tests', () => {
 
         // 1. Habitats
         loadAndMerge('appx.a.parcelscorehabitats.csv', (row, current) => {
-            if (parseInt(row['Wetland_300'])) current.breakdown.push({ category: 'Wildlife Habitat', name: 'Wetland w/300\' buffer', earnedScore: 1 });
-            if (parseInt(row['IA'])) current.breakdown.push({ category: 'Wildlife Habitat', name: 'NYNHP Important Areas for Rare Animals', earnedScore: 1 });
-            if (parseInt(row['Communities'])) current.breakdown.push({ category: 'Wildlife Habitat', name: 'NYNHP Significant Communities', earnedScore: 1 });
-            if (parseInt(row['Resiliency'])) current.breakdown.push({ category: 'Wildlife Habitat', name: 'TNC Resilient Sites', earnedScore: 1 });
-            if (parseInt(row['Cores'])) current.breakdown.push({ category: 'Wildlife Habitat', name: 'Ulster County Habitat Cores', earnedScore: 1 });
-            if (parseInt(row['Pools'])) current.breakdown.push({ category: 'Wildlife Habitat', name: 'Vernal Pool with 750\' buffer', earnedScore: 1 });
-            if (parseInt(row['Habitat_1'])) current.breakdown.push({ category: 'Wildlife Habitat', name: 'Hudsonia Mapped Crest/ledge/talus w/600\' buffer', earnedScore: 1 });
-            if (parseInt(row['Habitat_2'])) current.breakdown.push({ category: 'Wildlife Habitat', name: 'Additional Significant Habitat', earnedScore: 1 });
+            if (parseInt(row['Wetland_300'])) current.breakdown.push({ category: 'Wildlife Habitat', name: 'Wetland w/300\' buffer', earnedScore: parseInt(row['Wetland_300']) });
+            if (parseInt(row['IA'])) current.breakdown.push({ category: 'Wildlife Habitat', name: 'NYNHP Important Areas for Rare Animals', earnedScore: parseInt(row['IA']) });
+            if (parseInt(row['Communities'])) current.breakdown.push({ category: 'Wildlife Habitat', name: 'NYNHP Significant Communities', earnedScore: parseInt(row['Communities']) });
+            if (parseInt(row['Resiliency'])) current.breakdown.push({ category: 'Wildlife Habitat', name: 'TNC Resilient Sites', earnedScore: parseInt(row['Resiliency']) });
+            if (parseInt(row['Cores'])) current.breakdown.push({ category: 'Wildlife Habitat', name: 'Ulster County Habitat Cores', earnedScore: parseInt(row['Cores']) });
+            if (parseInt(row['Pools'])) current.breakdown.push({ category: 'Wildlife Habitat', name: 'Vernal Pool with 750\' buffer', earnedScore: parseInt(row['Pools']) });
+            if (parseInt(row['Habitat_1'])) current.breakdown.push({ category: 'Wildlife Habitat', name: 'Hudsonia Mapped Crest/ledge/talus w/600\' buffer', earnedScore: parseInt(row['Habitat_1']) });
+            if (parseInt(row['Habitat_2'])) current.breakdown.push({ category: 'Wildlife Habitat', name: 'Additional Significant Habitat', earnedScore: parseInt(row['Habitat_2']) });
         });
 
         // 2. Agricultural
         loadAndMerge('appx.a.parcelscoresagricultural.csv', (row, current) => {
             // Note: ParcelScorer uses score > 0 check. Ag_Soils in CSV is '2', scorer maps it to maxScore 1.
-            if (parseInt(row['Ag_Soils']) > 0) current.breakdown.push({ category: 'Agricultural', name: 'Prime Soils if Drained', earnedScore: 1 });
+            const score = parseInt(row['Ag_Soils']);
+            if (score > 0) current.breakdown.push({ category: 'Agricultural', name: 'Prime Soils if Drained', earnedScore: score });
         });
 
         // 3. Drinking Water
         loadAndMerge('appx.a.parcelscoresdrinkingwater.csv', (row, current) => {
-            if (parseInt(row['EPA_Aquifers'])) current.breakdown.push({ category: 'Drinking Water', name: 'EPA Principal Aquifers', earnedScore: 1 });
-            if (parseInt(row['Bedrock_Aquifers'])) current.breakdown.push({ category: 'Drinking Water', name: 'Bedrock Aquifers (Vly School Rondout)', earnedScore: 1 });
-            if (parseInt(row['Ashokan_Watershed'])) current.breakdown.push({ category: 'Drinking Water', name: 'Ashokan Watershed', earnedScore: 1 });
-            if (parseInt(row['Class_A_Streams'])) current.breakdown.push({ category: 'Drinking Water', name: 'DEC Class A Streams', earnedScore: 1 });
+            if (parseInt(row['EPA_Aquifers'])) current.breakdown.push({ category: 'Drinking Water', name: 'EPA Principal Aquifers', earnedScore: parseInt(row['EPA_Aquifers']) });
+            if (parseInt(row['Bedrock_Aquifers'])) current.breakdown.push({ category: 'Drinking Water', name: 'Bedrock Aquifers (Vly School Rondout)', earnedScore: parseInt(row['Bedrock_Aquifers']) });
+            if (parseInt(row['Ashokan_Watershed'])) current.breakdown.push({ category: 'Drinking Water', name: 'Ashokan Watershed', earnedScore: parseInt(row['Ashokan_Watershed']) });
+            if (parseInt(row['Class_A_Streams'])) current.breakdown.push({ category: 'Drinking Water', name: 'DEC Class A Streams', earnedScore: parseInt(row['Class_A_Streams']) });
         });
 
         // 4. Forest
         loadAndMerge('appx.a_.parcelscoresforest.csv', (row, current) => {
-            if (parseInt(row['Matrix_Forest'])) current.breakdown.push({ category: 'Forests and Woodlands', name: 'TNC Matrix Forest Blocks or Linkage Zones', earnedScore: 1 });
-            if (parseInt(row['Core_Forest'])) current.breakdown.push({ category: 'Forests and Woodlands', name: 'NYNHP Core Forests', earnedScore: 1 });
-            if (parseInt(row['High_Quality_Forest'])) current.breakdown.push({ category: 'Forests and Woodlands', name: 'NYNHP High Ranking Forests (60+ percentile)', earnedScore: 1 });
-            if (parseInt(row['Roadless_Blocks'])) current.breakdown.push({ category: 'Forests and Woodlands', name: 'NYNHP Roadless Blocks (100+ acres)', earnedScore: 1 });
-            if (parseInt(row['IA_Plants'])) current.breakdown.push({ category: 'Forests and Woodlands', name: 'NYNHP Important Areas for Rare Plants', earnedScore: 1 });
-            if (parseInt(row['Protected_Adjacent'])) current.breakdown.push({ category: 'Forests and Woodlands', name: 'Adjacent to Protected Lands', earnedScore: 1 });
+            if (parseInt(row['Matrix_Forest'])) current.breakdown.push({ category: 'Forests and Woodlands', name: 'TNC Matrix Forest Blocks or Linkage Zones', earnedScore: parseInt(row['Matrix_Forest']) });
+            if (parseInt(row['Core_Forest'])) current.breakdown.push({ category: 'Forests and Woodlands', name: 'NYNHP Core Forests', earnedScore: parseInt(row['Core_Forest']) });
+            if (parseInt(row['High_Quality_Forest'])) current.breakdown.push({ category: 'Forests and Woodlands', name: 'NYNHP High Ranking Forests (60+ percentile)', earnedScore: parseInt(row['High_Quality_Forest']) });
+            if (parseInt(row['Roadless_Blocks'])) current.breakdown.push({ category: 'Forests and Woodlands', name: 'NYNHP Roadless Blocks (100+ acres)', earnedScore: parseInt(row['Roadless_Blocks']) });
+            if (parseInt(row['IA_Plants'])) current.breakdown.push({ category: 'Forests and Woodlands', name: 'NYNHP Important Areas for Rare Plants', earnedScore: parseInt(row['IA_Plants']) });
+            if (parseInt(row['Protected_Adjacent'])) current.breakdown.push({ category: 'Forests and Woodlands', name: 'Adjacent to Protected Lands', earnedScore: parseInt(row['Protected_Adjacent']) });
         });
 
         // Ensure CsvLoader is initialized (it loads from the same files, but we want to test the Scorer logic)
