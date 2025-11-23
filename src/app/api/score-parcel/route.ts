@@ -57,12 +57,6 @@ export async function GET(request: Request) {
             // Streams and Wetlands (Not fully covered by CSVs)
             { category: 'Streams and Wetlands', name: 'FEMA Flood Zones', score: 1, dataSource: 'FEMA' },
             { category: 'Streams and Wetlands', name: 'Hydric Soils', score: 1, dataSource: 'SSURGO' },
-
-            // Historic and Cultural
-            { category: 'Historic and Cultural', name: 'Designated Historic Sites and Districts OR Houses built prior to 1900', score: 1 },
-            { category: 'Historic and Cultural', name: 'Historic Marker sites', score: 1 },
-            { category: 'Historic and Cultural', name: 'Adjacent to Special Properties', score: 1 },
-            { category: 'Historic and Cultural', name: 'Cemeteries', score: 1 },
         ];
 
         const criteriaSummary = [...scoreResult.breakdown];
