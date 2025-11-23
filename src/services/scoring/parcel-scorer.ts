@@ -5,8 +5,8 @@ export class ParcelScorer {
     constructor() { }
 
     /**
-     * Maps a category's raw score total to a priority level and score value
-     * based on Table 2.2 from the Marbletown CPP
+     * Map category raw score totals to priority levels using percentage-based thresholds
+     * High: ≥50% of category max, Medium: ≥25% of category max, Low: <25%
      */
     private mapToPriority(category: string, rawTotal: number): { level: PriorityLevel; score: number } {
         if (rawTotal === 0) {
@@ -15,24 +15,27 @@ export class ParcelScorer {
 
         switch (category) {
             case 'Drinking Water':
-                if (rawTotal >= 3) return { level: 'High', score: 3 };
-                if (rawTotal === 2) return { level: 'Medium', score: 2 };
-                return { level: 'Low', score: 1 };
+                // Max: 4 criteria → High: 2+, Medium: 1, Low: <1 (none in this case)
+                if (rawTotal >= 2) return { level: 'High', score: 3 };
+                return { level: 'Medium', score: 2 }; // rawTotal = 1
 
             case 'Wildlife Habitat':
-                if (rawTotal >= 6) return { level: 'High', score: rawTotal }; // 6-9 range
-                if (rawTotal >= 4) return { level: 'Medium', score: rawTotal }; // 4-5 range
-                return { level: 'Low', score: rawTotal }; // 1-3 range
+                // Max: 8 criteria → High: 4+, Medium: 2-3, Low: 1
+                if (rawTotal >= 4) return { level: 'High', score: 3 };
+                if (rawTotal >= 2) return { level: 'Medium', score: 2 };
+                return { level: 'Low', score: 1 };
 
             case 'Forests and Woodlands':
-                if (rawTotal >= 4) return { level: 'High', score: rawTotal }; // 4-6 range
-                if (rawTotal === 3) return { level: 'Medium', score: 3 };
-                return { level: 'Low', score: rawTotal }; // 1-2 range
+                // Max: 6 criteria → High: 3+, Medium: 2, Low: 1
+                if (rawTotal >= 3) return { level: 'High', score: 3 };
+                if (rawTotal >= 2) return { level: 'Medium', score: 2 };
+                return { level: 'Low', score: 1 };
 
             case 'Agricultural':
-                if (rawTotal >= 4) return { level: 'High', score: rawTotal }; // 4-6 range
-                if (rawTotal === 3) return { level: 'Medium', score: 3 };
-                return { level: 'Low', score: rawTotal }; // 1-2 range
+                // Max: 6 criteria → High: 3+, Medium: 2, Low: 1
+                if (rawTotal >= 3) return { level: 'High', score: 3 };
+                if (rawTotal >= 2) return { level: 'Medium', score: 2 };
+                return { level: 'Low', score: 1 };
 
             default:
                 return { level: 'None', score: 0 };
@@ -99,15 +102,13 @@ export class ParcelScorer {
             // Add to composite score
             compositeScore += priorityScore;
 
-            // Store category score
+            // Store category score (include all criteria, not just met ones)
             categories.push({
                 category: categoryName,
                 rawScore,
                 priorityLevel: level,
                 priorityScore,
-                criteria: criteria
-                    .filter(c => c.score > 0)
-                    .map(c => ({ name: c.name, earnedScore: c.score }))
+                criteria: criteria.map(c => ({ name: c.name, earnedScore: c.score }))
             });
 
             // Add to detailed breakdown

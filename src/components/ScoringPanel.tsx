@@ -239,22 +239,28 @@ export default function ScoringPanel({ data, loading, error, onClose }: ScoringP
                                             </div>
                                             {cat.criteria.length > 0 && (
                                                 <>
-                                                    <div style={{ fontSize: '0.75rem', fontWeight: 600, color: '#6b7280', marginBottom: '0.25rem' }}>
-                                                        Met Criteria:
+                                                    <div style={{ fontSize: '0.75rem', fontWeight: 600, color: '#6b7280', marginBottom: '0.5rem' }}>
+                                                        Criteria:
                                                     </div>
-                                                    {cat.criteria.map((c, idx) => (
-                                                        <div key={idx} style={{
-                                                            display: 'flex',
-                                                            justifyContent: 'space-between',
-                                                            padding: '0.25rem 0',
-                                                            color: '#059669',
-                                                            fontWeight: 600,
-                                                            fontSize: '0.8125rem'
-                                                        }}>
-                                                            <span style={{ flex: 1, paddingRight: '0.5rem' }}>✅ {c.name}</span>
-                                                            <span>{c.earnedScore}</span>
-                                                        </div>
-                                                    ))}
+                                                    {cat.criteria.map((c, idx) => {
+                                                        const isMet = c.earnedScore > 0;
+                                                        return (
+                                                            <div key={idx} style={{
+                                                                display: 'flex',
+                                                                justifyContent: 'space-between',
+                                                                padding: '0.25rem 0',
+                                                                color: isMet ? '#059669' : '#9ca3af',
+                                                                fontWeight: isMet ? 600 : 400,
+                                                                fontSize: '0.8125rem',
+                                                                opacity: isMet ? 1 : 0.7
+                                                            }}>
+                                                                <span style={{ flex: 1, paddingRight: '0.5rem' }}>
+                                                                    {isMet ? '✅' : '❌'} {c.name}
+                                                                </span>
+                                                                <span>{c.earnedScore}</span>
+                                                            </div>
+                                                        );
+                                                    })}
                                                 </>
                                             )}
                                         </div>
