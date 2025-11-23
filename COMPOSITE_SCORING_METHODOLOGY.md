@@ -277,6 +277,18 @@ This parcel receives a **composite score of 18**, indicating moderate-to-high co
 
 ## Interpreting Composite Scores
 
+### Overall Priority Classification
+
+To make composite scores more interpretable, parcels are classified into five overall priority levels based on the theoretical maximum of 12 points:
+
+| Composite Score Range | Overall Priority | Color | Percentage of Max | Interpretation |
+|----------------------|------------------|-------|-------------------|----------------|
+| **10-12** | Highest | Dark Brown (#5C2E0F) | 83%+ | Exceptional conservation value across multiple categories |
+| **8-9** | Higher | Rust Brown (#A0522D) | 67-75% | Very high conservation value in several categories |
+| **6-7** | High | Orange (#FF8C00) | 50-58% | Significant conservation value |
+| **3-5** | Medium | Yellow (#FFD700) | 25-42% | Moderate conservation value |
+| **0-2** | Low | Light Cream (#FFF8DC) | 0-17% | Limited conservation value |
+
 ### Score Ranges
 
 While the CPP document doesn't explicitly define composite score ranges, we can infer reasonable interpretations:

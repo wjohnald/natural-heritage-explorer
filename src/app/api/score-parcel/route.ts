@@ -5,9 +5,9 @@ import { getParcelGeometry } from '@/services/parcel-geometry';
 /**
  * Parcel Scoring API
  * 
- * This API scores parcels based on conservation value using multiple criteria categories.
- * It uses the ParcelScorer service for implemented criteria and appends unimplemented criteria
- * for frontend display.
+ * This API scores parcels using the Marbletown CPP composite scoring methodology.
+ * Scores are calculated by aggregating raw scores by category, mapping to priority
+ * levels (High/Medium/Low), and summing priority values into a composite score.
  */
 
 export async function GET(request: Request) {
@@ -38,7 +38,7 @@ export async function GET(request: Request) {
         }
 
         // Calculate Scores using ParcelScorer service
-        console.log('Starting modular parcel scoring...');
+        console.log('Starting composite parcel scoring...');
         const scorer = new ParcelScorer();
 
         // Extract Parcel ID (PRINT_KEY)
@@ -46,49 +46,11 @@ export async function GET(request: Request) {
 
         if (!parcelId) {
             console.warn('No Parcel ID found for address');
-            // We can still return the geometry but scores will be empty
         }
 
         const scoreResult = await scorer.scoreParcel(parcelId || '');
 
-        // Add unimplemented criteria (require static data files not available via public REST API)
-        // See parcel_scoring_methodology.csv for data source details
-        const unimplementedCriteria = [
-            // Streams and Wetlands (Not fully covered by CSVs)
-            { category: 'Streams and Wetlands', name: 'FEMA Flood Zones', score: 1, dataSource: 'FEMA' },
-            { category: 'Streams and Wetlands', name: 'Hydric Soils', score: 1, dataSource: 'SSURGO' },
-        ];
-
-        const criteriaSummary = [...scoreResult.breakdown];
-
-        for (const criterion of unimplementedCriteria) {
-            criteriaSummary.push({
-                name: criterion.name,
-                category: criterion.category,
-                maxScore: criterion.score,
-                earnedScore: 0,
-                matched: false,
-                implemented: false,
-                dataSource: (criterion as any).dataSource,
-                notes: (criterion as any).notes,
-            });
-        }
-
-        // Reconstruct breakdown object for compatibility
-        const breakdown: Record<string, { score: number; criteria: string[] }> = {};
-        const detailsMatched: string[] = [];
-
-        for (const item of scoreResult.breakdown) {
-            if (item.matched) {
-                if (!breakdown[item.category]) {
-                    breakdown[item.category] = { score: 0, criteria: [] };
-                }
-                breakdown[item.category].score += item.earnedScore;
-                breakdown[item.category].criteria.push(item.name);
-                detailsMatched.push(item.name);
-            }
-        }
-
+        // Build response with composite scoring data
         return NextResponse.json({
             parcelInfo: {
                 address: parcel.attributes?.PARCEL_ADDR,
@@ -99,11 +61,9 @@ export async function GET(request: Request) {
                 owner: parcel.attributes?.PRIMARY_OWNER,
             },
             parcelGeometry: parcel.geometry,
-            totalScore: scoreResult.totalScore,
-            maxPossibleScore: criteriaSummary.reduce((sum, c) => sum + (c.maxScore || c.score || 0), 0),
-            breakdown,
-            criteriaMatched: detailsMatched,
-            criteriaSummary,
+            compositeScore: scoreResult.compositeScore,
+            categories: scoreResult.categories,
+            breakdown: scoreResult.breakdown,
         });
 
     } catch (error) {

@@ -65,3 +65,33 @@ export interface ParcelScores {
     iaPlants?: number;
     protectedAdjacent?: number;
 }
+
+export type PriorityLevel = 'High' | 'Medium' | 'Low' | 'None';
+export type OverallPriority = 'Highest' | 'Higher' | 'High' | 'Medium' | 'Low';
+
+export interface CategoryScore {
+    category: string;
+    rawScore: number;
+    priorityLevel: PriorityLevel;
+    priorityScore: number;
+    criteria: Array<{
+        name: string;
+        earnedScore: number;
+    }>;
+}
+
+export interface CompositeScoreResult {
+    parcelId: string;
+    compositeScore: number;
+    categories: CategoryScore[];
+    breakdown: Array<{
+        category: string;
+        name: string;
+        maxScore: number;
+        earnedScore: number;
+        matched: boolean;
+        implemented: boolean;
+        notes?: string;
+    }>;
+}
+

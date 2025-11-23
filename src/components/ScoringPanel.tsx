@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { CategoryScore, PriorityLevel } from '@/services/scoring/types';
 
 interface ScoringPanelProps {
     data: any | null;
@@ -19,14 +20,25 @@ export default function ScoringPanel({ data, loading, error, onClose }: ScoringP
 
     if (!data && !loading && !error) return null;
 
-    // Helper to get color from yellow to maroon based on percentage
-    const getScoreColor = (percentage: number) => {
-        // Maroon is #800000 (128, 0, 0)
-        // Yellow is #FFFF00 (255, 255, 0)
-        const r = Math.round(255 - (percentage / 100) * (255 - 128));
-        const g = Math.round(255 - (percentage / 100) * 255);
-        const b = 0;
-        return `rgb(${r}, ${g}, ${b})`;
+    // Helper to get priority level color
+    const getPriorityColor = (level: PriorityLevel) => {
+        switch (level) {
+            case 'High': return '#A0522D'; // Rust brown (matching "Higher" overall)
+            case 'Medium': return '#FFD700'; // Yellow
+            case 'Low': return '#FFF8DC'; // Light cream
+            case 'None': return '#D3D3D3'; // Light gray
+            default: return '#D3D3D3';
+        }
+    };
+
+    // Helper to get overall priority based on composite score
+    // Theoretical max with 4 categories: 12 points
+    const getOverallPriority = (compositeScore: number): { level: string; color: string } => {
+        if (compositeScore >= 10) return { level: 'Highest', color: '#5C2E0F' }; // Dark brown (83%+)
+        if (compositeScore >= 8) return { level: 'Higher', color: '#A0522D' }; // Rust brown (67%+)
+        if (compositeScore >= 6) return { level: 'High', color: '#FF8C00' }; // Orange (50%+)
+        if (compositeScore >= 3) return { level: 'Medium', color: '#FFD700' }; // Yellow (25%+)
+        return { level: 'Low', color: '#FFF8DC' }; // Light cream (0-25%)
     };
 
     if (loading) {
@@ -87,30 +99,9 @@ export default function ScoringPanel({ data, loading, error, onClose }: ScoringP
         );
     }
 
-    const scorePercent = data.maxPossibleScore > 0
-        ? Math.round((data.totalScore / data.maxPossibleScore) * 100)
-        : 0;
-
-    // Calculate category scores
-    const byCategory: Record<string, { earned: number, max: number }> = {};
-    if (data.criteriaSummary) {
-        data.criteriaSummary.forEach((c: any) => {
-            if (!byCategory[c.category]) {
-                byCategory[c.category] = { earned: 0, max: 0 };
-            }
-            byCategory[c.category].earned += (c.earnedScore || 0);
-            byCategory[c.category].max += (c.maxScore || 0);
-        });
-    }
-
-    // Group detailed criteria
-    const criteriaByCategory: Record<string, any[]> = {};
-    if (data.criteriaSummary) {
-        data.criteriaSummary.forEach((c: any) => {
-            if (!criteriaByCategory[c.category]) criteriaByCategory[c.category] = [];
-            criteriaByCategory[c.category].push(c);
-        });
-    }
+    // Extract composite score and categories from new data structure
+    const compositeScore = data.compositeScore || 0;
+    const categories: CategoryScore[] = data.categories || [];
 
     return (
         <div className="scoring-panel" style={{
@@ -143,44 +134,54 @@ export default function ScoringPanel({ data, loading, error, onClose }: ScoringP
                 )}
             </div>
 
-            {/* Score Slider */}
-            <div style={{ marginBottom: '1.5rem', padding: '1rem', background: '#f9fafb', borderRadius: '0.5rem', border: '1px solid #e5e7eb' }}>
-                <div style={{ position: 'relative', height: '24px', background: 'linear-gradient(to right, #ffff00, #800000)', borderRadius: '12px', border: '1px solid #d1d5db', marginBottom: '0.5rem' }}>
-                    <div style={{
-                        position: 'absolute',
-                        left: `${Math.max(2, Math.min(98, scorePercent))}%`,
-                        top: '50%',
-                        transform: 'translate(-50%, -50%)',
-                        width: '4px',
-                        height: '32px',
-                        background: '#000',
-                        border: '1px solid white',
-                        boxShadow: '0 1px 3px rgba(0,0,0,0.3)'
-                    }}></div>
+            {/* Composite Score Display */}
+            <div style={{
+                marginBottom: '1.5rem',
+                padding: '1.5rem',
+                background: 'linear-gradient(135deg, #f9fafb 0%, #e5e7eb 100%)',
+                borderRadius: '0.5rem',
+                border: `2px solid ${getOverallPriority(compositeScore).color}`,
+                textAlign: 'center'
+            }}>
+                <div style={{ fontSize: '0.75rem', fontWeight: 600, color: '#6b7280', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: '0.5rem' }}>
+                    Conservation Priority
                 </div>
-                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.75rem', color: '#6b7280' }}>
-                    <span>Low Value</span>
-                    <span>High Value</span>
+                <div style={{
+                    display: 'inline-block',
+                    fontSize: '1.25rem',
+                    fontWeight: 700,
+                    padding: '0.5rem 1.5rem',
+                    borderRadius: '0.5rem',
+                    backgroundColor: getOverallPriority(compositeScore).color,
+                    color: compositeScore >= 3 ? 'white' : '#333',
+                    marginBottom: '1rem',
+                    letterSpacing: '0.05em'
+                }}>
+                    {getOverallPriority(compositeScore).level.toUpperCase()}
+                </div>
+                <div style={{ fontSize: '0.875rem', color: '#6b7280', marginBottom: '0.5rem' }}>
+                    <strong>Composite Score:</strong> {compositeScore}
+                </div>
+                <div style={{ fontSize: '0.875rem', color: '#6b7280' }}>
+                    Based on {categories.length} resource categories
                 </div>
             </div>
 
             {/* Category Breakdown */}
-            {Object.keys(byCategory).length > 0 && (
+            {categories.length > 0 && (
                 <div style={{ marginBottom: '1.5rem' }}>
                     <h4 style={{ fontSize: '0.875rem', fontWeight: 600, marginBottom: '0.75rem', color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
                         Category Breakdown
                     </h4>
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-                        {Object.entries(byCategory).map(([category, scores]) => {
-                            const catPercent = scores.max > 0 ? (scores.earned / scores.max) * 100 : 0;
-                            const indicatorColor = getScoreColor(catPercent);
-                            const isExpanded = !!expandedCategories[category];
-                            const criteria = criteriaByCategory[category] || [];
+                        {categories.map((cat) => {
+                            const isExpanded = !!expandedCategories[cat.category];
+                            const priorityColor = getPriorityColor(cat.priorityLevel);
 
                             return (
-                                <div key={category} style={{ background: '#fff', borderRadius: '0.375rem', border: '1px solid #e5e7eb', overflow: 'hidden' }}>
+                                <div key={cat.category} style={{ background: '#fff', borderRadius: '0.375rem', border: '1px solid #e5e7eb', overflow: 'hidden' }}>
                                     <button
-                                        onClick={() => toggleCategory(category)}
+                                        onClick={() => toggleCategory(cat.category)}
                                         style={{
                                             display: 'flex',
                                             alignItems: 'center',
@@ -193,13 +194,39 @@ export default function ScoringPanel({ data, loading, error, onClose }: ScoringP
                                             textAlign: 'left'
                                         }}
                                     >
-                                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', overflow: 'hidden' }}>
-                                            <div style={{ flexShrink: 0, width: '12px', height: '12px', borderRadius: '50%', backgroundColor: indicatorColor, border: '1px solid rgba(0,0,0,0.1)' }}></div>
-                                            <div style={{ fontSize: '0.875rem', fontWeight: 600, color: '#4b5563', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }} title={category}>{category}</div>
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', overflow: 'hidden', flex: 1 }}>
+                                            <div style={{
+                                                flexShrink: 0,
+                                                width: '12px',
+                                                height: '12px',
+                                                borderRadius: '50%',
+                                                backgroundColor: priorityColor,
+                                                border: '1px solid rgba(0,0,0,0.1)'
+                                            }}></div>
+                                            <div style={{
+                                                fontSize: '0.875rem',
+                                                fontWeight: 600,
+                                                color: '#4b5563',
+                                                whiteSpace: 'nowrap',
+                                                overflow: 'hidden',
+                                                textOverflow: 'ellipsis'
+                                            }} title={cat.category}>
+                                                {cat.category}
+                                            </div>
                                         </div>
-                                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                                            <div style={{ fontSize: '0.875rem', fontWeight: 700, color: '#800000' }}>
-                                                {scores.earned} <span style={{ fontSize: '0.75rem', fontWeight: 400, color: '#9ca3af' }}>/ {scores.max}</span>
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                                            <div style={{
+                                                fontSize: '0.75rem',
+                                                fontWeight: 600,
+                                                padding: '0.25rem 0.5rem',
+                                                borderRadius: '0.25rem',
+                                                backgroundColor: priorityColor,
+                                                color: cat.priorityLevel === 'Low' ? '#333' : 'white'
+                                            }}>
+                                                {cat.priorityLevel}
+                                            </div>
+                                            <div style={{ fontSize: '0.875rem', fontWeight: 700, color: '#800000', minWidth: '60px', textAlign: 'right' }}>
+                                                {cat.priorityScore} <span style={{ fontSize: '0.75rem', fontWeight: 400, color: '#9ca3af' }}>pts</span>
                                             </div>
                                             <div style={{ color: '#9ca3af', fontSize: '0.75rem', transform: isExpanded ? 'rotate(180deg)' : 'rotate(0)', transition: 'transform 0.2s' }}>▼</div>
                                         </div>
@@ -207,19 +234,29 @@ export default function ScoringPanel({ data, loading, error, onClose }: ScoringP
 
                                     {isExpanded && (
                                         <div style={{ padding: '0.75rem', borderTop: '1px solid #e5e7eb', background: '#f9fafb' }}>
-                                            {criteria.map((c: any, idx: number) => {
-                                                const icon = c.matched ? '✅' : c.implemented ? '❌' : '⚪';
-                                                const color = c.matched ? '#059669' : c.implemented ? '#6b7280' : '#9ca3af';
-                                                const label = c.implemented ? '' : ' (data unavailable)';
-                                                const weight = c.matched ? '600' : '400';
-
-                                                return (
-                                                    <div key={idx} style={{ display: 'flex', justifyContent: 'space-between', padding: '0.25rem 0', color, fontWeight: weight, fontSize: '0.8125rem' }}>
-                                                        <span style={{ flex: 1, paddingRight: '0.5rem' }}>{icon} {c.name}{label}</span>
-                                                        <span>{c.earnedScore}</span>
+                                            <div style={{ marginBottom: '0.5rem', fontSize: '0.75rem', color: '#6b7280' }}>
+                                                <strong>Raw Score:</strong> {cat.rawScore}
+                                            </div>
+                                            {cat.criteria.length > 0 && (
+                                                <>
+                                                    <div style={{ fontSize: '0.75rem', fontWeight: 600, color: '#6b7280', marginBottom: '0.25rem' }}>
+                                                        Met Criteria:
                                                     </div>
-                                                );
-                                            })}
+                                                    {cat.criteria.map((c, idx) => (
+                                                        <div key={idx} style={{
+                                                            display: 'flex',
+                                                            justifyContent: 'space-between',
+                                                            padding: '0.25rem 0',
+                                                            color: '#059669',
+                                                            fontWeight: 600,
+                                                            fontSize: '0.8125rem'
+                                                        }}>
+                                                            <span style={{ flex: 1, paddingRight: '0.5rem' }}>✅ {c.name}</span>
+                                                            <span>{c.earnedScore}</span>
+                                                        </div>
+                                                    ))}
+                                                </>
+                                            )}
                                         </div>
                                     )}
                                 </div>
@@ -227,18 +264,21 @@ export default function ScoringPanel({ data, loading, error, onClose }: ScoringP
                         })}
                     </div>
                 </div>
-            )}
+            )
+            }
 
             {/* Parcel Info */}
-            {data.parcelInfo && (
-                <div style={{ marginBottom: '1.5rem', padding: '0.75rem', background: 'var(--bg-tertiary)', borderRadius: '0.375rem', fontSize: '0.875rem' }}>
-                    <div style={{ marginBottom: '0.25rem' }}><strong>Address:</strong> {data.parcelInfo.address || 'N/A'}</div>
-                    <div style={{ marginBottom: '0.25rem' }}><strong>Municipality:</strong> {data.parcelInfo.municipality || 'N/A'}, {data.parcelInfo.county || 'N/A'}</div>
-                    <div style={{ marginBottom: '0.25rem' }}><strong>Owner:</strong> {data.parcelInfo.owner || 'N/A'}</div>
-                    <div style={{ marginBottom: '0.25rem' }}><strong>Parcel ID:</strong> {data.parcelInfo.printKey || 'N/A'}</div>
-                    <div><strong>Size:</strong> {data.parcelInfo.acres ? parseFloat(data.parcelInfo.acres).toFixed(2) : 'N/A'} acres</div>
-                </div>
-            )}
-        </div>
+            {
+                data.parcelInfo && (
+                    <div style={{ marginBottom: '1.5rem', padding: '0.75rem', background: 'var(--bg-tertiary)', borderRadius: '0.375rem', fontSize: '0.875rem' }}>
+                        <div style={{ marginBottom: '0.25rem' }}><strong>Address:</strong> {data.parcelInfo.address || 'N/A'}</div>
+                        <div style={{ marginBottom: '0.25rem' }}><strong>Municipality:</strong> {data.parcelInfo.municipality || 'N/A'}, {data.parcelInfo.county || 'N/A'}</div>
+                        <div style={{ marginBottom: '0.25rem' }}><strong>Owner:</strong> {data.parcelInfo.owner || 'N/A'}</div>
+                        <div style={{ marginBottom: '0.25rem' }}><strong>Parcel ID:</strong> {data.parcelInfo.printKey || 'N/A'}</div>
+                        <div><strong>Size:</strong> {data.parcelInfo.acres ? parseFloat(data.parcelInfo.acres).toFixed(2) : 'N/A'} acres</div>
+                    </div>
+                )
+            }
+        </div >
     );
 }
