@@ -108,21 +108,12 @@ export async function queryFeatureService(
 
         console.log(`Querying: ${url}`);
 
-        // If buffer is specified, use ArcGIS Geometry Service to buffer the geometry first
-        let queryGeometry = geometry;
-        if (buffer !== undefined && buffer > 0) {
-            const bufferedGeom = await bufferGeometry(geometry, buffer);
-            if (bufferedGeom) {
-                queryGeometry = bufferedGeom;
-            } else {
-                // Fallback to original geometry if buffering fails, but log it
-                console.warn('Buffering failed, using original geometry');
-            }
-        }
-
+        // CRITICAL FIX: Do NOT buffer the parcel geometry
+        // Instead, use server-side buffering via distance parameter
+        // This buffers the queried features (wetlands), not the input parcel
         const params = new URLSearchParams({
             f: 'json',
-            geometry: JSON.stringify(queryGeometry),
+            geometry: JSON.stringify(geometry),  // Use parcel geometry as-is
             geometryType: 'esriGeometryPolygon',
             inSR: sr.wkid?.toString() || '3857',
             spatialRel: 'esriSpatialRelIntersects',
@@ -135,12 +126,12 @@ export async function queryFeatureService(
             params.append('where', whereClause);
         }
 
-        // Debug logging for FEMA specifically
-        if (url.includes('fema.gov')) {
-            console.log('[FEMA QUERY DEBUG] URL:', url);
-            console.log('[FEMA QUERY DEBUG] Spatial Reference:', sr.wkid);
-            console.log('[FEMA QUERY DEBUG] Geometry rings count:', queryGeometry.rings?.length);
-            console.log('[FEMA QUERY DEBUG] First ring points:', queryGeometry.rings?.[0]?.length);
+        // CRITICAL FIX: Buffer is applied SERVER-SIDE to the queried features (wetlands)
+        // NOT to the input parcel geometry
+        if (buffer !== undefined && buffer > 0) {
+            params.append('distance', buffer.toString());
+            params.append('units', 'esriSRUnit_Foot');
+            console.log(`[QUERY DEBUG] Applying ${buffer}ft buffer to queried features (server-side)`);
         }
 
         // Use POST to handle large geometries
@@ -164,14 +155,6 @@ export async function queryFeatureService(
             if (data.error) {
                 console.error(`Query error for ${serviceUrl}:`, data.error);
                 return false;
-            }
-
-            // Debug logging for FEMA specifically
-            if (url.includes('fema.gov')) {
-                console.log('[FEMA QUERY DEBUG] Response count:', data.count);
-                if (data.count === 0) {
-                    console.log('[FEMA QUERY DEBUG] No features found - property may not be in flood zone');
-                }
             }
 
             if (buffer !== undefined) {

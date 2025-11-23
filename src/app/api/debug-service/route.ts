@@ -3,30 +3,17 @@ import { ParcelScorer } from '@/services/scoring/parcel-scorer';
 
 export async function GET() {
     try {
-        // 1. Define the geometry for 789 Lapla Road (from previous debug)
-        const geometry = {
-            "rings": [
-                [
-                    [-8251392.4278, 5139556.8398],
-                    [-8251230.1234, 5139556.8398],
-                    [-8251230.1234, 5139400.1234],
-                    [-8251392.4278, 5139400.1234],
-                    [-8251392.4278, 5139556.8398]
-                ]
-            ],
-            "spatialReference": {
-                "wkid": 3857
-            }
-        };
+        // 1. Define a known Parcel ID (from CSV)
+        const parcelId = '78.1-1-22.111'; // 1000 Mohonk - Mtn Rest Rd
 
-        console.log('Testing ParcelScorer with 789 Lapla Road geometry (Web Mercator)...');
+        console.log(`Testing ParcelScorer with Parcel ID: ${parcelId}...`);
 
         const scorer = new ParcelScorer();
-        const scoreResult = await scorer.scoreParcel(geometry);
+        const scoreResult = await scorer.scoreParcel(parcelId);
 
         return NextResponse.json({
             message: 'ParcelScorer Test',
-            geometry,
+            parcelId,
             scoreResult
         });
 

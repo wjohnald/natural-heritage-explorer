@@ -29,3 +29,39 @@ export interface ScoringCriterion {
     evaluate(geometry: ParcelGeometry): Promise<ScoringResult>;
     getMetadata(): CriterionMetadata;
 }
+
+export interface ParcelScores {
+    parcelId: string;
+
+    // Habitats
+    ia?: number;
+    communities?: number;
+    resiliency?: number;
+    species?: number;
+    cores?: number;
+    pools?: number;
+    wetland300?: number;
+    habitat1?: number;
+    habitat2?: number;
+
+    // Agricultural
+    agSoils?: number;
+    agDistrict?: number;
+    farmsAdjacent?: number;
+    protected?: number;
+    centuryFarms?: number;
+
+    // Drinking Water
+    epaAquifers?: number;
+    bedrockAquifers?: number;
+    ashokanWatershed?: number;
+    classAStreams?: number;
+
+    // Forest
+    matrixForest?: number;
+    coreForest?: number;
+    highQualityForest?: number;
+    roadlessBlocks?: number;
+    iaPlants?: number;
+    protectedAdjacent?: number;
+}

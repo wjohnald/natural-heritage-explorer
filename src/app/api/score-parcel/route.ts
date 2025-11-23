@@ -40,41 +40,44 @@ export async function GET(request: Request) {
         // Calculate Scores using ParcelScorer service
         console.log('Starting modular parcel scoring...');
         const scorer = new ParcelScorer();
-        const scoreResult = await scorer.scoreParcel(parcel.geometry);
+
+        // Extract Parcel ID (PRINT_KEY)
+        const parcelId = parcel.attributes?.PRINT_KEY;
+
+        if (!parcelId) {
+            console.warn('No Parcel ID found for address');
+            // We can still return the geometry but scores will be empty
+        }
+
+        const scoreResult = await scorer.scoreParcel(parcelId || '');
 
         // Add unimplemented criteria (require static data files not available via public REST API)
         // See parcel_scoring_methodology.csv for data source details
         const unimplementedCriteria = [
-            { category: 'Drinking Water', name: 'Bedrock Aquifers (Vly School Rondout)', score: 1, dataSource: 'NYS GIS Clearinghouse' },
-            { category: 'Drinking Water', name: 'Ashokan Watershed', score: 1, dataSource: 'NYS Open Data Portal' },
-            { category: 'Drinking Water', name: 'DEC Class A Streams outside of Ashokan Watershed', score: 1, dataSource: 'DEC Streams Layer' },
-            { category: 'Wildlife Habitat', name: 'TNC Resilient Sites', score: 1, dataSource: 'TNC Data Basin (tnc_resilient_sites.shp)', notes: 'Only linkages present in town' },
-            { category: 'Wildlife Habitat', name: 'NYNHP Modeled Rare Species', score: 1.5, dataSource: 'Contact NYNHP (nynhp_modeled_rare_species.shp)', notes: '1-2 species: 1pt, 3+ species: 2pts' },
-            { category: 'Wildlife Habitat', name: 'Ulster County Habitat Cores', score: 1, dataSource: 'Ulster County Planning (ulster_habitat_cores.shp)' },
-            { category: 'Wildlife Habitat', name: 'Vernal Pool with 750\' buffer', score: 1, dataSource: 'Hudsonia or local inventories (vernal_pools_buffered.shp)', notes: 'Includes Intermittent Woodland Pools with 750\' buffer per Hudsonia Report' },
-            { category: 'Wildlife Habitat', name: 'Hudsonia Mapped Crest/ledge/talus w/600\' buffer', score: 1, dataSource: 'Contact Hudsonia (hudsonia_crest_ledge_talus.shp)', notes: '600\' buffer based on Hudsonia report' },
-            { category: 'Forests and Woodlands', name: 'TNC Matrix Forest Blocks or Linkage Zones', score: 1 },
-            { category: 'Forests and Woodlands', name: 'NYNHP Core Forests', score: 1, dataSource: 'NYS GIS Clearinghouse' },
-            { category: 'Forests and Woodlands', name: 'NYNHP High Ranking Forests (60+ percentile)', score: 1, dataSource: 'NYS GIS Clearinghouse' },
-            { category: 'Forests and Woodlands', name: 'NYNHP Roadless Blocks (100+ acres)', score: 1, dataSource: 'NYS GIS Clearinghouse' },
+            // Streams and Wetlands (Not fully covered by CSVs)
             { category: 'Streams and Wetlands', name: 'NYNHP Riparian Buffers or w/in 100\' of stream or 650\' of Rondout Creek and tribs', score: 1, dataSource: 'Calculate from DEC streams layer' },
+            { category: 'Streams and Wetlands', name: 'FEMA Flood Zones', score: 1, dataSource: 'FEMA' },
+            { category: 'Streams and Wetlands', name: 'Hydric Soils', score: 1, dataSource: 'SSURGO' },
+
+            // Recreation and Trails
             { category: 'Recreation and Trails', name: 'Adjacent to Existing Trails', score: 1 },
             { category: 'Recreation and Trails', name: 'Adjacent to Mohonk Preserve', score: 1 },
             { category: 'Recreation and Trails', name: 'Within potential trail connection area', score: 1 },
             { category: 'Recreation and Trails', name: 'Within 1 mile of hamlet centers', score: 1 },
+
+            // Scenic Areas
             { category: 'Scenic Areas', name: 'Adjacent to SMSB', score: 1 },
             { category: 'Scenic Areas', name: 'Adjacent to local scenic roads', score: 1 },
             { category: 'Scenic Areas', name: 'Areas visible from SMSB and local scenic roads', score: 1 },
             { category: 'Scenic Areas', name: 'Areas visible from-to Sky Top', score: 1 },
             { category: 'Scenic Areas', name: 'Gateway areas', score: 1 },
+
+            // Historic and Cultural
             { category: 'Historic and Cultural', name: 'Designated Historic Sites and Districts OR Houses built prior to 1900', score: 1 },
             { category: 'Historic and Cultural', name: 'Historic Marker sites', score: 1 },
             { category: 'Historic and Cultural', name: 'Adjacent to D&H Canal', score: 1 },
             { category: 'Historic and Cultural', name: 'Adjacent to Special Properties', score: 1 },
             { category: 'Historic and Cultural', name: 'Cemeteries', score: 1 },
-            { category: 'Agricultural', name: 'Prime Soils if Drained', score: 1, dataSource: 'SSURGO via Web Soil Survey' },
-            { category: 'Agricultural', name: 'Coded as an Active farm and/or Receiving an Ag Tax exemption', score: 1, dataSource: 'County tax assessor data' },
-            { category: 'Agricultural', name: 'Century Farms', score: 1, dataSource: 'NYS Ag & Markets' },
         ];
 
         const criteriaSummary = [...scoreResult.breakdown];
