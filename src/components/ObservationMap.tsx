@@ -15,7 +15,6 @@ interface ObservationMapProps {
   radius?: number; // in miles
   hoveredSpecies?: string | null;
   onParcelSelected?: (data: any, loading: boolean, error: string | null) => void;
-  parcelScoreData?: any;
 }
 
 type BasemapType = 'topo' | 'street' | 'satellite';
@@ -337,83 +336,23 @@ function MapUpdater({ center, zoom }: { center: [number, number], zoom: number }
   return null;
 }
 
-// Component to handle Tax Parcel clicks and show conservation scores
-function ParcelScoreHandler({ enabled, onParcelSelected }: { enabled: boolean; onParcelSelected?: (data: any, loading: boolean, error: string | null) => void }) {
-  const map = useMap();
-
-  useEffect(() => {
-    if (!enabled || !onParcelSelected) return;
-
-    const handleClick = async (e: L.LeafletMouseEvent) => {
-      try {
-        // Notify start of loading
-        onParcelSelected(null, true, null);
-
-        // Call parcel scoring API directly with coordinates (no geocoding)
-        const scoreResponse = await fetch(
-          `/api/score-parcel?lat=${e.latlng.lat}&lon=${e.latlng.lng}`
-        );
-        const scoreData = await scoreResponse.json();
-
-        if (scoreData.error) {
-          onParcelSelected(null, false, scoreData.error);
-          return;
-        }
-
-        // Notify success
-        onParcelSelected(scoreData, false, null);
-
-      } catch (error) {
-        console.error('Error getting parcel score:', error);
-        onParcelSelected(null, false, (error as Error).message);
-      }
-    };
-
-    map.on('click', handleClick);
-
-    return () => {
-      map.off('click', handleClick);
-    };
-  }, [map, enabled, onParcelSelected]);
-
-  return null;
-}
-
-// Component to render selected parcel polygon overlay
-function SelectedParcelPolygon({ parcelScoreData }: { parcelScoreData: any }) {
-  if (!parcelScoreData || !parcelScoreData.parcelGeometry) return null;
-
-  const geometry = parcelScoreData.parcelGeometry;
-
-
-  // Convert ArcGIS rings from Web Mercator (EPSG:3857) to WGS84 lat/lon (EPSG:4326)
-  const positions: L.LatLngExpression[][] = geometry.rings.map((ring: number[][]) =>
-    ring.map(([x, y]) => webMercatorToLatLon(x, y) as L.LatLngExpression)
-  );
-
-  return (
-    <Polygon
-      positions={positions}
-      pathOptions={{
-        color: '#000',
-        fillColor: '#000',
-        fillOpacity: 0.3,
-        weight: 3,
-        opacity: 0.8
-      }}
-    />
-  );
-}
-
 
 const MILES_TO_METERS = 1609.34;
 
-export default function ObservationMap({ observations, searchCoordinates, radius = 0.5, hoveredSpecies, onParcelSelected, parcelScoreData }: ObservationMapProps) {
+export default function ObservationMap({ observations, searchCoordinates, radius = 0.5, hoveredSpecies }: ObservationMapProps) {
   const [isMounted, setIsMounted] = useState(false);
   const [selectedBasemap, setSelectedBasemap] = useState<BasemapType>('topo');
   const [showNWI, setShowNWI] = useState(false);
   const [showParcels, setShowParcels] = useState(true);
+  const [parcelLayerVersion, setParcelLayerVersion] = useState(0);
   const [showInfoWetlands, setShowInfoWetlands] = useState(true);
+
+  const toggleParcels = () => {
+    if (!showParcels) {
+      setParcelLayerVersion(v => v + 1);
+    }
+    setShowParcels(!showParcels);
+  };
 
   // Memoize center to prevent unnecessary map re-centering
   const center: [number, number] = useMemo(() =>
@@ -644,7 +583,7 @@ export default function ObservationMap({ observations, searchCoordinates, radius
               {showNWI ? '✓' : '○'} Wetlands
             </button>
             <button
-              onClick={() => setShowParcels(!showParcels)}
+              onClick={toggleParcels}
               style={{
                 padding: '0.375rem 0.75rem',
                 background: showParcels ? '#10b981' : 'white',
@@ -830,7 +769,7 @@ export default function ObservationMap({ observations, searchCoordinates, radius
           {/* Conditionally render Tax Parcel Layer - Bottom overlay */}
           {showParcels && (
             <WMSTileLayer
-              key={`tax-parcels-${selectedBasemap}`}
+              key={`tax-parcels-${selectedBasemap}-${parcelLayerVersion}`}
               url="https://gisservices.its.ny.gov/arcgis/services/NYS_Tax_Parcels_Public/MapServer/WMSServer"
               layers="0"
               format="image/png"
@@ -858,9 +797,6 @@ export default function ObservationMap({ observations, searchCoordinates, radius
               maxNativeZoom={19}
             />
           )}
-
-          {/* Parcel score handler */}
-          <ParcelScoreHandler enabled={showParcels} onParcelSelected={onParcelSelected} />
 
           {/* Conditionally render DEC Informational Wetlands Layer */}
           {showInfoWetlands && (
@@ -1067,9 +1003,6 @@ export default function ObservationMap({ observations, searchCoordinates, radius
                 </CircleMarker>
               );
             })}
-
-          {/* Selected parcel polygon overlay - rendered last to appear on top */}
-          <SelectedParcelPolygon parcelScoreData={parcelScoreData} />
         </MapContainer>
       </div>
 

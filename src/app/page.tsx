@@ -73,11 +73,6 @@ function HomeContent() {
   const [hoveredSpecies, setHoveredSpecies] = useState<string | null>(null);
   const [expandedSpeciesObservations, setExpandedSpeciesObservations] = useState<(iNaturalistObservation | GBIFObservation)[]>([]);
 
-  // Parcel Scoring State
-  const [parcelScoreData, setParcelScoreData] = useState<any>(null);
-  const [parcelScoreLoading, setParcelScoreLoading] = useState(false);
-  const [parcelScoreError, setParcelScoreError] = useState<string | null>(null);
-
   // Get unique conservation statuses from observations
   const availableStatuses = ["Endangered", "Threatened", "Special Concern"];
   const availableVernalPoolStatuses = ["Obligate", "Facultative"];
@@ -490,11 +485,7 @@ function HomeContent() {
     setExpandedSpeciesObservations([]);
   };
 
-  const handleParcelSelected = (data: any, loading: boolean, error: string | null) => {
-    setParcelScoreData(data);
-    setParcelScoreLoading(loading);
-    setParcelScoreError(error);
-  };
+
 
   const filteredObservations = getFilteredObservations();
   const filteredAndSortedGroups = getFilteredAndSortedGroups();
@@ -818,8 +809,6 @@ function HomeContent() {
               searchCoordinates={searchCoordinates || undefined}
               radius={radius}
               hoveredSpecies={hoveredSpecies}
-              onParcelSelected={handleParcelSelected}
-              parcelScoreData={parcelScoreData}
             />
           </Suspense>
         </div>
