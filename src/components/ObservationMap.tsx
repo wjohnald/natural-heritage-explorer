@@ -384,19 +384,7 @@ function SelectedParcelPolygon({ parcelScoreData }: { parcelScoreData: any }) {
   if (!parcelScoreData || !parcelScoreData.parcelGeometry) return null;
 
   const geometry = parcelScoreData.parcelGeometry;
-  const compositeScore = parcelScoreData.compositeScore || 0;
 
-  // Get overall priority color based on composite score
-  // Matches the color scheme from ScoringPanel
-  const getOverallPriorityColor = (score: number): string => {
-    if (score >= 10) return '#5C2E0F'; // Highest - Dark brown
-    if (score >= 8) return '#A0522D'; // Higher - Rust brown
-    if (score >= 6) return '#FF8C00'; // High - Orange
-    if (score >= 3) return '#FFD700'; // Medium - Yellow
-    return '#FFF8DC'; // Low - Light cream
-  };
-
-  const color = getOverallPriorityColor(compositeScore);
 
   // Convert ArcGIS rings from Web Mercator (EPSG:3857) to WGS84 lat/lon (EPSG:4326)
   const positions: L.LatLngExpression[][] = geometry.rings.map((ring: number[][]) =>
@@ -407,8 +395,8 @@ function SelectedParcelPolygon({ parcelScoreData }: { parcelScoreData: any }) {
     <Polygon
       positions={positions}
       pathOptions={{
-        color: color,
-        fillColor: color,
+        color: '#000',
+        fillColor: '#000',
         fillOpacity: 0.3,
         weight: 3,
         opacity: 0.8

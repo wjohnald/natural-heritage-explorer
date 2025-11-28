@@ -26,7 +26,6 @@ import SpeciesListWrapper from '@/components/SpeciesListWrapper';
 import GBIFSpeciesListWrapper from '@/components/GBIFSpeciesListWrapper';
 import SidebarSpeciesList from '@/components/SidebarSpeciesList';
 import SidebarGBIFSpeciesList from '@/components/SidebarGBIFSpeciesList';
-import ScoringPanel from '@/components/ScoringPanel';
 
 // Dynamically import the map component to avoid SSR issues with Leaflet
 const ObservationMap = dynamic(() => import('@/components/ObservationMap'), {
@@ -497,12 +496,6 @@ function HomeContent() {
     setParcelScoreError(error);
   };
 
-  const handleCloseScoringPanel = () => {
-    setParcelScoreData(null);
-    setParcelScoreLoading(false);
-    setParcelScoreError(null);
-  };
-
   const filteredObservations = getFilteredObservations();
   const filteredAndSortedGroups = getFilteredAndSortedGroups();
   const filteredAndSortedSpeciesGroups = getFilteredAndSortedSpeciesGroups();
@@ -943,13 +936,6 @@ function HomeContent() {
                 )}
               </div>
 
-              {/* Scoring Panel */}
-              <ScoringPanel
-                data={parcelScoreData}
-                loading={parcelScoreLoading}
-                error={parcelScoreError}
-                onClose={handleCloseScoringPanel}
-              />
             </>
           )}
         </div>
