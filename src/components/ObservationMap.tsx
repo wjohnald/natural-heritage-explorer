@@ -767,7 +767,7 @@ export default function ObservationMap({ observations, searchCoordinates, radius
               url="https://gisservices.its.ny.gov/arcgis/services/NYS_Tax_Parcels_Public/MapServer/WMSServer"
               layers="0"
               format="image/png"
-              transparent={false}
+              transparent={true}
               version="1.3.0"
               attribution='<a href="https://gis.ny.gov/" target="_blank">NYS Tax Parcels</a>'
               opacity={0.7}
