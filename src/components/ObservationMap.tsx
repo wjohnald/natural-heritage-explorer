@@ -5,7 +5,6 @@ import { MapContainer, TileLayer, WMSTileLayer, CircleMarker, Popup, Circle, Pol
 import { iNaturalistObservation, GBIFObservation, Coordinates } from '@/types';
 import L from 'leaflet';
 import * as Esri from 'esri-leaflet';
-import { webMercatorToLatLon } from '@/utils/coordinate-conversion';
 import 'leaflet/dist/leaflet.css';
 import 'leaflet-geometryutil';
 
