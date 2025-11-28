@@ -13,7 +13,6 @@ interface ObservationMapProps {
   searchCoordinates?: Coordinates;
   radius?: number; // in miles
   hoveredSpecies?: string | null;
-  onParcelSelected?: (data: any, loading: boolean, error: string | null) => void;
 }
 
 type BasemapType = 'topo' | 'street' | 'satellite';
@@ -343,13 +342,9 @@ export default function ObservationMap({ observations, searchCoordinates, radius
   const [selectedBasemap, setSelectedBasemap] = useState<BasemapType>('topo');
   const [showNWI, setShowNWI] = useState(false);
   const [showParcels, setShowParcels] = useState(true);
-  const [parcelLayerVersion, setParcelLayerVersion] = useState(0);
   const [showInfoWetlands, setShowInfoWetlands] = useState(true);
 
   const toggleParcels = () => {
-    if (!showParcels) {
-      setParcelLayerVersion(v => v + 1);
-    }
     setShowParcels(!showParcels);
   };
 
@@ -768,11 +763,11 @@ export default function ObservationMap({ observations, searchCoordinates, radius
           {/* Conditionally render Tax Parcel Layer - Bottom overlay */}
           {showParcels && (
             <WMSTileLayer
-              key={`tax-parcels-${selectedBasemap}-${parcelLayerVersion}`}
+              key={`tax-parcels-${selectedBasemap}`}
               url="https://gisservices.its.ny.gov/arcgis/services/NYS_Tax_Parcels_Public/MapServer/WMSServer"
               layers="0"
               format="image/png"
-              transparent={true}
+              transparent={false}
               version="1.3.0"
               attribution='<a href="https://gis.ny.gov/" target="_blank">NYS Tax Parcels</a>'
               opacity={0.7}
