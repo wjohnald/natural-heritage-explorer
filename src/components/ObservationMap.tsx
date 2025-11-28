@@ -323,6 +323,162 @@ function DECWetlandsLayer({ enabled }: { enabled: boolean }) {
   return null;
 }
 
+// Component to handle Tax Parcel layer using esri-leaflet with EAF Mapper source
+function TaxParcelLayer({ enabled }: { enabled: boolean }) {
+  const map = useMap();
+  const [parcelPopup, setParcelPopup] = useState<L.Popup | null>(null);
+
+  useEffect(() => {
+    if (!enabled) return;
+
+    const layer = Esri.dynamicMapLayer({
+      url: 'https://gisservices.dec.ny.gov/arcgis/rest/services/EAF/EAF_Mapper/MapServer',
+      layers: [1], // Layer 1 is the Tax Parcels layer
+      opacity: 0.7,
+      f: 'image'
+    });
+
+    layer.addTo(map);
+
+    // Add click handler to identify parcel features
+    const handleClick = (e: L.LeafletMouseEvent) => {
+      const identifyTask = Esri.identifyFeatures({
+        url: 'https://gisservices.dec.ny.gov/arcgis/rest/services/EAF/EAF_Mapper/MapServer'
+      });
+
+      identifyTask
+        .on(map)
+        .at(e.latlng)
+        .tolerance(3)
+        .layers('visible:1') // Only query layer 1 (Tax Parcels)
+        .run((error: any, featureCollection: any) => {
+          if (error) {
+            console.error('Error identifying tax parcel:', error);
+            return;
+          }
+
+          if (featureCollection && featureCollection.features && featureCollection.features.length > 0) {
+            const feature = featureCollection.features[0];
+            const props = feature.properties;
+
+            // Build popup content with parcel information
+            let popupContent = `
+              <div style="padding: 0.5rem;">
+                <h3 style="margin: 0 0 0.5rem 0; font-size: 1rem; font-weight: 600; color: var(--text-primary);">
+                  📋 Tax Parcel Information
+                </h3>
+                <div style="font-size: 0.875rem; color: var(--text-primary);">
+            `;
+
+            // Add Print Key (parcel identifier)
+            if (props.PRINT_KEY) {
+              popupContent += `
+                  <div style="margin-bottom: 0.5rem;">
+                    <strong>Parcel ID:</strong> ${props.PRINT_KEY}
+                  </div>
+              `;
+            }
+
+            // Add SBL (Section-Block-Lot)
+            if (props.SBL) {
+              popupContent += `
+                  <div style="margin-bottom: 0.5rem;">
+                    <strong>SBL:</strong> ${props.SBL}
+                  </div>
+              `;
+            }
+
+            // Add County name
+            if (props.COUNTY_NAME) {
+              popupContent += `
+                  <div style="margin-bottom: 0.5rem;">
+                    <strong>County:</strong> ${props.COUNTY_NAME}
+                  </div>
+              `;
+            }
+
+            // Add Municipality name
+            if (props.MUNI_NAME || props.CITYTOWN_NAME) {
+              const muniName = props.MUNI_NAME || props.CITYTOWN_NAME;
+              popupContent += `
+                  <div style="margin-bottom: 0.5rem;">
+                    <strong>Municipality:</strong> ${muniName}
+                  </div>
+              `;
+            }
+
+            // Add SWIS code
+            if (props.SWIS) {
+              popupContent += `
+                  <div style="margin-bottom: 0.5rem;">
+                    <strong>SWIS:</strong> ${props.SWIS}
+                  </div>
+              `;
+            }
+
+            // Add Roll Year
+            if (props.ROLL_YR) {
+              popupContent += `
+                  <div style="margin-bottom: 0.5rem;">
+                    <strong>Roll Year:</strong> ${props.ROLL_YR}
+                  </div>
+              `;
+            }
+
+            // Add Spatial Year
+            if (props.SPATIAL_YR) {
+              popupContent += `
+                  <div style="margin-bottom: 0.5rem;">
+                    <strong>Spatial Year:</strong> ${props.SPATIAL_YR}
+                  </div>
+              `;
+            }
+
+            // Add area if available
+            if (props.Shape_Area) {
+              const areaAcres = (props.Shape_Area / 4046.86).toFixed(2);
+              popupContent += `
+                  <div style="margin-bottom: 0.5rem;">
+                    <strong>Area:</strong> ${areaAcres} acres
+                  </div>
+              `;
+            }
+
+            popupContent += `
+                </div>
+              </div>
+            `;
+
+            // Remove existing popup if any
+            if (parcelPopup) {
+              map.removeLayer(parcelPopup);
+            }
+
+            // Create and show new popup
+            const popup = L.popup()
+              .setLatLng(e.latlng)
+              .setContent(popupContent)
+              .openOn(map);
+
+            setParcelPopup(popup);
+          }
+        });
+    };
+
+    map.on('click', handleClick);
+
+    return () => {
+      map.removeLayer(layer);
+      map.off('click', handleClick);
+      if (parcelPopup) {
+        map.removeLayer(parcelPopup);
+      }
+    };
+  }, [map, enabled, parcelPopup]);
+
+  return null;
+}
+
 // Component to update map view when search coordinates change
 function MapUpdater({ center, zoom }: { center: [number, number], zoom: number }) {
   const map = useMap();
@@ -760,20 +916,9 @@ export default function ObservationMap({ observations, searchCoordinates, radius
             </>
           )}
 
-          {/* Conditionally render Tax Parcel Layer - Bottom overlay */}
+          {/* Conditionally render Tax Parcel Layer using EAF Mapper */}
           {showParcels && (
-            <WMSTileLayer
-              key={`tax-parcels-${selectedBasemap}`}
-              url="https://gisservices.its.ny.gov/arcgis/services/NYS_Tax_Parcels_Public/MapServer/WMSServer"
-              layers="0"
-              format="image/png"
-              transparent={true}
-              version="1.3.0"
-              attribution='<a href="https://gis.ny.gov/" target="_blank">NYS Tax Parcels</a>'
-              opacity={0.7}
-              maxZoom={22}
-              maxNativeZoom={19}
-            />
+            <TaxParcelLayer enabled={showParcels} />
           )}
 
           {/* Conditionally render NWI Layer */}
