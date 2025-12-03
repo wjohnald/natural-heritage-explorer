@@ -7,4 +7,4 @@ These source files need test coverage.
 - [ ] src/services/server-geocoding.ts
 - [ ] src/utils/coordinate-conversion.ts
 - [x] src/utils/dateFormat.ts
-- [ ] src/utils/distance.ts
+- [x] src/utils/distance.ts
