@@ -105,6 +105,9 @@ describe('server-geocoding', () => {
         it('should handle Google Maps ZERO_RESULTS and fall back to Nominatim', async () => {
             process.env.GOOGLE_MAPS_API_KEY = 'test-api-key';
 
+            // Mock console.error to suppress expected error logs
+            const consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => { });
+
             const mockGoogleResponse = {
                 status: 'ZERO_RESULTS',
                 results: []
@@ -131,11 +134,15 @@ describe('server-geocoding', () => {
             expect(result.provider).toBe('openstreetmap');
             expect(result.coordinates.lat).toBe(40.7128);
 
+            consoleErrorSpy.mockRestore();
             delete process.env.GOOGLE_MAPS_API_KEY;
         });
 
         it('should handle Google Maps API errors and fall back to Nominatim', async () => {
             process.env.GOOGLE_MAPS_API_KEY = 'test-api-key';
+
+            // Mock console.error to suppress expected error logs
+            const consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => { });
 
             vi.mocked(fetch)
                 .mockResolvedValueOnce({
@@ -154,6 +161,7 @@ describe('server-geocoding', () => {
             const result = await geocodeAddress('123 Main St');
             expect(result.provider).toBe('openstreetmap');
 
+            consoleErrorSpy.mockRestore();
             delete process.env.GOOGLE_MAPS_API_KEY;
         });
     });
@@ -203,9 +211,18 @@ describe('server-geocoding', () => {
         });
 
         it('should handle network errors', async () => {
+            // Mock console.error to suppress expected error logs
+            const consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => { });
+
             vi.mocked(fetch).mockRejectedValue(new Error('Network error'));
 
             await expect(geocodeAddress('123 Main St')).rejects.toThrow('Address not found');
+
+            // Verify errors were logged
+            expect(consoleErrorSpy).toHaveBeenCalled();
+
+            // Restore console.error
+            consoleErrorSpy.mockRestore();
         });
     });
 

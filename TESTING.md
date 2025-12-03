@@ -28,17 +28,19 @@ npm run test:watch
 npm test -- --coverage
 ```
 
-## Pre-commit Hook
+## Pre-push Hook
 
-A pre-commit hook has been installed that automatically runs all tests before each commit. This ensures that:
-- All tests pass before code is committed
-- Breaking changes are caught early
-- Code quality is maintained
+A pre-push hook has been installed that automatically runs all tests before pushing to the remote repository. This ensures that:
+- All tests pass before code is pushed
+- Breaking changes are caught before sharing with the team
+- Code quality is maintained in the remote repository
+
+The hook runs before `git push`, giving you time to fix issues locally before they reach the remote.
 
 ### Bypassing the Hook (Not Recommended)
-If you absolutely need to commit without running tests:
+If you absolutely need to push without running tests:
 ```bash
-git commit --no-verify -m "your message"
+git push --no-verify
 ```
 
 **Note:** This should only be used in exceptional circumstances.
@@ -129,13 +131,13 @@ describe('myFunction - Integration', () => {
 
 ## Troubleshooting
 
-### Pre-commit Hook Not Running
+### Pre-push Hook Not Running
 ```bash
 # Make sure the hook is executable
-chmod +x .git/hooks/pre-commit
+chmod +x .git/hooks/pre-push
 
 # Verify it exists
-ls -la .git/hooks/pre-commit
+ls -la .git/hooks/pre-push
 ```
 
 ### Tests Failing in CI but Passing Locally
